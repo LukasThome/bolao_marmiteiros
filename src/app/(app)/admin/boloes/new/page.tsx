@@ -2,9 +2,16 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/slugify";
+import { Prisma } from "@prisma/client";
 import Link from "next/link";
 
-export default async function NewBolaoPage() {
+export default async function NewBolaoPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { error } = await searchParams;
+
   async function createBolao(formData: FormData) {
     "use server";
     const session = await auth();
@@ -15,6 +22,7 @@ export default async function NewBolaoPage() {
 
     const slug = slugify(name);
 
+    let bolaoSlug: string;
     try {
       const bolao = await prisma.bolao.create({
         data: {
@@ -23,11 +31,21 @@ export default async function NewBolaoPage() {
           members: { create: { userId: session.user.id } },
         },
       });
-      redirect(`/admin/rodadas/${bolao.slug}/new`);
-    } catch {
-      redirect("/admin/boloes/new?error=slug-exists");
+      bolaoSlug = bolao.slug;
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+        redirect("/admin/boloes/new?error=slug-exists");
+      }
+      redirect("/admin/boloes/new?error=unknown");
     }
+
+    redirect(`/admin/rodadas/${bolaoSlug}/new`);
   }
+
+  const errorMsg: Record<string, string> = {
+    "slug-exists": "Já existe um bolão com esse nome. Tente outro.",
+    "unknown": "Erro inesperado ao criar o bolão.",
+  };
 
   return (
     <main className="min-h-screen p-8" style={{ backgroundColor: "var(--bg-base)", color: "var(--text-primary)" }}>
@@ -36,6 +54,15 @@ export default async function NewBolaoPage() {
           ← Voltar
         </Link>
         <h1 className="text-2xl font-bold mb-6">Novo Bolão</h1>
+
+        {error && (
+          <div
+            className="mb-4 px-4 py-3 rounded-lg text-sm"
+            style={{ backgroundColor: "var(--bg-raised)", border: "1px solid var(--danger)", color: "var(--danger)" }}
+          >
+            {errorMsg[error] ?? "Erro desconhecido."}
+          </div>
+        )}
 
         <form action={createBolao} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
@@ -49,7 +76,7 @@ export default async function NewBolaoPage() {
               className="rounded-lg px-4 py-2.5 outline-none transition-colors"
               style={{
                 backgroundColor: "var(--bg-raised)",
-                border: "1px solid var(--border)",
+                border: `1px solid ${error ? "var(--danger)" : "var(--border)"}`,
                 color: "var(--text-primary)",
               }}
             />
