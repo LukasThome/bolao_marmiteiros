@@ -20,7 +20,7 @@ export default defineConfig({
         "src/app/**",
       ],
       thresholds: {
-        lines: 80,
+        lines: 80,  
         functions: 80,
         branches: 75,
         statements: 80,

@@ -1,0 +1,130 @@
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+}
+
+enum PartidaStatus {
+  SCHEDULED
+  LIVE
+  FINISHED
+}
+
+model User {
+  id            String        @id @default(auto()) @map("_id") @db.ObjectId
+  name          String?
+  email         String        @unique
+  emailVerified DateTime?
+  image         String?
+  role          Role          @default(MEMBER)
+  accounts      Account[]
+  sessions      Session[]
+  memberships   BolaoMember[]
+  palpites      Palpite[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model Account {
+  id                String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String  @db.ObjectId
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  sessionToken String   @unique
+  userId       String   @db.ObjectId
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Bolao {
+  id        String        @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  slug      String        @unique
+  members   BolaoMember[]
+  rodadas   Rodada[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model BolaoMember {
+  id       String @id @default(auto()) @map("_id") @db.ObjectId
+  userId   String @db.ObjectId
+  bolaoId  String @db.ObjectId
+  totalPts Int    @default(0)
+  user     User   @relation(fields: [userId], references: [id])
+  bolao    Bolao  @relation(fields: [bolaoId], references: [id])
+
+  @@unique([userId, bolaoId])
+}
+
+model Rodada {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  bolaoId   String    @db.ObjectId
+  name      String
+  deadline  DateTime
+  partidas  Partida[]
+  bolao     Bolao     @relation(fields: [bolaoId], references: [id])
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Partida {
+  id        String        @id @default(auto()) @map("_id") @db.ObjectId
+  rodadaId  String        @db.ObjectId
+  homeTeam  String
+  awayTeam  String
+  homeScore Int?
+  awayScore Int?
+  status    PartidaStatus @default(SCHEDULED)
+  palpites  Palpite[]
+  rodada    Rodada        @relation(fields: [rodadaId], references: [id])
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model Palpite {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  partidaId String   @db.ObjectId
+  homeScore Int
+  awayScore Int
+  pontos    Int?
+  user      User     @relation(fields: [userId], references: [id])
+  partida   Partida  @relation(fields: [partidaId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, partidaId])
+}
