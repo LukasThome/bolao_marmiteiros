@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { calcularPontos } from "@/lib/score";
 import Link from "next/link";
+import BuscarPartidas from "./BuscarPartidas";
 
 export default async function ResultadoPage({
   params,
@@ -161,10 +162,18 @@ export default async function ResultadoPage({
           ))}
         </div>
 
-        {/* Adicionar partida */}
+        {/* Buscar jogos da API */}
+        <div className="mb-4">
+          <BuscarPartidas
+            rodadaId={rodadaId}
+            existingTeams={rodada.partidas.flatMap((p) => [p.homeTeam, p.awayTeam])}
+          />
+        </div>
+
+        {/* Adicionar partida manualmente */}
         <div className="rounded-xl p-5" style={{ backgroundColor: "var(--bg-surface)", border: "1px solid var(--border)" }}>
           <h2 className="text-sm font-semibold mb-3" style={{ color: "var(--text-secondary)" }}>
-            Adicionar partida
+            Adicionar manualmente
           </h2>
           <form action={addPartida} className="flex items-center gap-3 flex-wrap">
             <input
