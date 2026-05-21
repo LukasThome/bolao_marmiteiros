@@ -20,7 +20,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             credentials: {},
             async authorize() {
               return {
-                id: "dev-user-id",
+                id: "000000000000000000000001",
                 email: process.env.DEV_USER_EMAIL!,
                 name: process.env.DEV_USER_NAME ?? "Dev User",
                 role: "ADMIN",
@@ -35,11 +35,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        const dbUser = await prisma.user.findUnique({
-          where: { email: user.email! },
-          select: { role: true },
-        });
-        token.role = dbUser?.role ?? "MEMBER";
+        // Credentials provider (dev bypass) already sets role on user object
+        const credRole = (user as { role?: string }).role;
+        if (credRole) {
+          token.role = credRole;
+        } else {
+          const dbUser = await prisma.user.findUnique({
+            where: { email: user.email! },
+            select: { role: true },
+          });
+          token.role = dbUser?.role ?? "MEMBER";
+        }
       }
       return token;
     },
