@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Users, ChevronRight, Plus, Trophy } from "lucide-react";
 import Link from "next/link";
+import LogoutButton from "@/components/LogoutButton";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -30,16 +31,19 @@ export default async function DashboardPage() {
               )}
             </p>
           </div>
-          {isAdmin && (
-            <Link
-              href="/admin/boloes/new"
-              className="flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-lg transition-colors"
-              style={{ backgroundColor: "var(--accent)", color: "#fff" }}
-            >
-              <Plus size={15} />
-              Novo Bolão
-            </Link>
-          )}
+          <div className="flex items-center gap-2">
+            {isAdmin && (
+              <Link
+                href="/admin/boloes/new"
+                className="flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-lg transition-colors"
+                style={{ backgroundColor: "var(--accent)", color: "#fff" }}
+              >
+                <Plus size={15} />
+                Novo Bolão
+              </Link>
+            )}
+            <LogoutButton />
+          </div>
         </div>
 
         {/* Lista de bolões */}
