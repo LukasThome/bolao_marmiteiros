@@ -20,13 +20,17 @@ export default async function BolaoPage({
         orderBy: { deadline: "desc" },
         include: { _count: { select: { partidas: true } } },
       },
-      _count: { select: { members: true } },
+      members: {
+        orderBy: { totalPts: "desc" },
+        include: { user: { select: { id: true, name: true, image: true } } },
+      },
     },
   });
 
   if (!bolao) redirect("/dashboard");
 
   const now = new Date();
+  const hasPoints = bolao.members.some((m) => m.totalPts > 0);
 
   return (
     <main className="min-h-screen p-6 md:p-8" style={{ backgroundColor: "var(--bg-base)", color: "var(--text-primary)" }}>
@@ -39,7 +43,7 @@ export default async function BolaoPage({
           <div>
             <h1 className="text-2xl font-bold">{bolao.name}</h1>
             <p className="text-sm mt-0.5" style={{ color: "var(--text-secondary)" }}>
-              {bolao._count.members} {bolao._count.members === 1 ? "membro" : "membros"}
+              {bolao.members.length} {bolao.members.length === 1 ? "membro" : "membros"}
             </p>
           </div>
           {isAdmin && (
@@ -53,10 +57,47 @@ export default async function BolaoPage({
           )}
         </div>
 
+        {/* Ranking */}
+        <div className="rounded-xl mb-6" style={{ backgroundColor: "var(--bg-surface)", border: "1px solid var(--border)" }}>
+          <div className="flex items-center gap-2 px-4 pt-4 pb-3" style={{ borderBottom: "1px solid var(--border)" }}>
+            <Trophy size={14} style={{ color: "var(--gold)" }} />
+            <h2 className="text-sm font-semibold">Classificação</h2>
+          </div>
+          <div className="divide-y" style={{ borderColor: "var(--border)" }}>
+            {bolao.members.map((member, i) => {
+              const isMe = member.user.id === session?.user?.id;
+              const medals = ["🥇", "🥈", "🥉"];
+              return (
+                <div
+                  key={member.id}
+                  className="flex items-center gap-3 px-4 py-3"
+                  style={isMe ? { backgroundColor: "var(--accent-subtle)" } : undefined}
+                >
+                  <span className="w-6 text-center text-sm">
+                    {hasPoints && i < 3 ? medals[i] : <span style={{ color: "var(--text-muted)" }}>{i + 1}</span>}
+                  </span>
+                  <span className="flex-1 text-sm font-medium truncate">
+                    {member.user.name ?? "—"}
+                    {isMe && (
+                      <span className="ml-1.5 text-xs" style={{ color: "var(--accent)" }}>você</span>
+                    )}
+                  </span>
+                  <span
+                    className="text-sm font-bold tabular-nums"
+                    style={{ color: hasPoints && i === 0 ? "var(--gold)" : "var(--text-primary)" }}
+                  >
+                    {member.totalPts} pts
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Rodadas */}
         {bolao.rodadas.length === 0 ? (
-          <div className="text-center py-16 rounded-xl" style={{ backgroundColor: "var(--bg-surface)", border: "1px solid var(--border)" }}>
-            <Trophy size={32} className="mx-auto mb-3" style={{ color: "var(--text-muted)" }} />
-            <p className="font-medium">Nenhuma rodada ainda</p>
+          <div className="text-center py-12 rounded-xl" style={{ backgroundColor: "var(--bg-surface)", border: "1px solid var(--border)" }}>
+            <p className="text-sm" style={{ color: "var(--text-muted)" }}>Nenhuma rodada ainda</p>
           </div>
         ) : (
           <div className="flex flex-col gap-3">

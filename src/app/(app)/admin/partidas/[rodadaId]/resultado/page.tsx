@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { calcularPontos } from "@/lib/score";
 import Link from "next/link";
 
 export default async function ResultadoPage({
@@ -43,6 +44,32 @@ export default async function ResultadoPage({
       where: { id: partidaId },
       data: { homeScore, awayScore, status: "FINISHED" },
     });
+
+    // Pontuar todos os palpites desta partida
+    const palpites = await prisma.palpite.findMany({
+      where: { partidaId },
+      include: { partida: { include: { rodada: { include: { bolao: true } } } } },
+    });
+
+    for (const palpite of palpites) {
+      const pontos = calcularPontos(
+        { homeScore: palpite.homeScore, awayScore: palpite.awayScore },
+        { homeScore, awayScore }
+      );
+
+      await prisma.palpite.update({
+        where: { id: palpite.id },
+        data: { pontos },
+      });
+
+      // Atualiza totalPts do membro no bolão
+      const bolaoId = palpite.partida.rodada.bolao.id;
+      await prisma.bolaoMember.updateMany({
+        where: { userId: palpite.userId, bolaoId },
+        data: { totalPts: { increment: pontos } },
+      });
+    }
+
     revalidatePath(`/admin/partidas/${rodadaId}/resultado`);
   }
 
