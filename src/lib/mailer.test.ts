@@ -1,54 +1,43 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-// Mock nodemailer antes do import
-vi.mock("nodemailer", () => ({
-  default: {
-    createTransport: vi.fn(() => ({
-      sendMail: vi.fn().mockResolvedValue({ message: JSON.stringify({ to: "t@t.com" }) }),
-    })),
-  },
+const mockSend = vi.fn().mockResolvedValue({ id: "fake-id" });
+
+vi.mock("resend", () => ({
+  Resend: vi.fn().mockImplementation(() => ({
+    emails: { send: mockSend },
+  })),
 }));
 
-import nodemailer from "nodemailer";
 import { sendMail } from "@/lib/mailer";
-
-const mockCreateTransport = vi.mocked(nodemailer.createTransport);
 
 beforeEach(() => {
   vi.clearAllMocks();
-  // Recria o mock para cada teste
-  mockCreateTransport.mockReturnValue({
-    sendMail: vi.fn().mockResolvedValue({ message: JSON.stringify({ to: "t@t.com" }) }),
-  } as never);
+  delete process.env.RESEND_API_KEY;
 });
 
 afterEach(() => {
-  delete process.env.SMTP_HOST;
+  delete process.env.RESEND_API_KEY;
 });
 
 describe("sendMail", () => {
-  it("usa jsonTransport quando SMTP_HOST não está definido", async () => {
-    delete process.env.SMTP_HOST;
+  it("não chama Resend quando RESEND_API_KEY não está definida", async () => {
     await sendMail({ to: "a@b.com", subject: "Teste", html: "<p>Olá</p>" });
-    expect(mockCreateTransport).toHaveBeenCalledWith({ jsonTransport: true });
+    expect(mockSend).not.toHaveBeenCalled();
   });
 
-  it("usa SMTP quando SMTP_HOST está definido", async () => {
-    process.env.SMTP_HOST = "smtp.example.com";
-    await sendMail({ to: "a@b.com", subject: "Teste", html: "<p>Olá</p>" });
-    expect(mockCreateTransport).toHaveBeenCalledWith(
-      expect.objectContaining({ host: "smtp.example.com" })
+  it("chama Resend.emails.send quando a chave está definida", async () => {
+    process.env.RESEND_API_KEY = "re_test_key";
+    await sendMail({ to: "dest@test.com", subject: "Assunto", html: "<b>X</b>" });
+    expect(mockSend).toHaveBeenCalledWith(
+      expect.objectContaining({ to: "dest@test.com", subject: "Assunto" })
     );
   });
 
-  it("chama sendMail com os campos corretos", async () => {
-    const mockSendMail = vi.fn().mockResolvedValue({ message: JSON.stringify({}) });
-    mockCreateTransport.mockReturnValue({ sendMail: mockSendMail } as never);
-
-    await sendMail({ to: "dest@test.com", subject: "Assunto", html: "<b>X</b>" });
-
-    expect(mockSendMail).toHaveBeenCalledWith(
-      expect.objectContaining({ to: "dest@test.com", subject: "Assunto" })
+  it("inclui o campo from no envio", async () => {
+    process.env.RESEND_API_KEY = "re_test_key";
+    await sendMail({ to: "x@y.com", subject: "S", html: "<p/>" });
+    expect(mockSend).toHaveBeenCalledWith(
+      expect.objectContaining({ from: expect.stringContaining("Marmiteiros") })
     );
   });
 });
