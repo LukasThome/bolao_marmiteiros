@@ -20,17 +20,23 @@ export default async function BolaoPage({
         orderBy: { deadline: "desc" },
         include: { _count: { select: { partidas: true } } },
       },
-      members: {
-        orderBy: { totalPts: "desc" },
-        include: { user: { select: { id: true, name: true, image: true } } },
-      },
+      members: { orderBy: { totalPts: "desc" } },
     },
   });
 
   if (!bolao) redirect("/dashboard");
 
+  // Query separada para tolerar BolaoMembers com userId órfão (ex: dev bypass antigo)
+  const userIds = bolao.members.map((m) => m.userId);
+  const users = await prisma.user.findMany({
+    where: { id: { in: userIds } },
+    select: { id: true, name: true, image: true },
+  });
+  const userMap = Object.fromEntries(users.map((u) => [u.id, u]));
+  const members = bolao.members.map((m) => ({ ...m, user: userMap[m.userId] ?? null }));
+
   const now = new Date();
-  const hasPoints = bolao.members.some((m) => m.totalPts > 0);
+  const hasPoints = members.some((m) => m.totalPts > 0);
 
   return (
     <main className="min-h-screen p-6 md:p-8" style={{ backgroundColor: "var(--bg-base)", color: "var(--text-primary)" }}>
@@ -43,7 +49,7 @@ export default async function BolaoPage({
           <div>
             <h1 className="text-2xl font-bold">{bolao.name}</h1>
             <p className="text-sm mt-0.5" style={{ color: "var(--text-secondary)" }}>
-              {bolao.members.length} {bolao.members.length === 1 ? "membro" : "membros"}
+              {members.length} {members.length === 1 ? "membro" : "membros"}
             </p>
           </div>
           {isAdmin && (
@@ -64,8 +70,8 @@ export default async function BolaoPage({
             <h2 className="text-sm font-semibold">Classificação</h2>
           </div>
           <div className="divide-y" style={{ borderColor: "var(--border)" }}>
-            {bolao.members.map((member, i) => {
-              const isMe = member.user.id === session?.user?.id;
+            {members.map((member, i) => {
+              const isMe = member.userId === session?.user?.id;
               const medals = ["🥇", "🥈", "🥉"];
               return (
                 <div
@@ -77,7 +83,7 @@ export default async function BolaoPage({
                     {hasPoints && i < 3 ? medals[i] : <span style={{ color: "var(--text-muted)" }}>{i + 1}</span>}
                   </span>
                   <span className="flex-1 text-sm font-medium truncate">
-                    {member.user.name ?? "—"}
+                    {member.user?.name ?? "—"}
                     {isMe && (
                       <span className="ml-1.5 text-xs" style={{ color: "var(--accent)" }}>você</span>
                     )}

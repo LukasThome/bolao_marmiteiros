@@ -34,12 +34,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id;
-        // Credentials provider (dev bypass) already sets role on user object
         const credRole = (user as { role?: string }).role;
         if (credRole) {
-          token.role = credRole;
+          // Dev bypass: garante que existe um User real no banco com este email
+          let dbUser = await prisma.user.findUnique({ where: { email: user.email! } });
+          if (!dbUser) {
+            dbUser = await prisma.user.create({
+              data: { email: user.email!, name: user.name ?? "Dev User", role: "ADMIN" },
+            });
+          }
+          token.id = dbUser.id;
+          token.role = dbUser.role;
         } else {
+          token.id = user.id;
           const dbUser = await prisma.user.findUnique({
             where: { email: user.email! },
             select: { role: true },
