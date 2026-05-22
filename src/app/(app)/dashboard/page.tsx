@@ -10,7 +10,7 @@ export default async function DashboardPage() {
 
   let boloes: Awaited<ReturnType<typeof fetchBoloes>> = [];
   try {
-    boloes = await fetchBoloes(session?.user?.id ?? "");
+    boloes = await fetchBoloes(session?.user?.id ?? "", isAdmin);
   } catch {
     // ID inválido (dev bypass sem registro no banco)
   }
@@ -123,9 +123,9 @@ export default async function DashboardPage() {
   );
 }
 
-async function fetchBoloes(userId: string) {
+async function fetchBoloes(userId: string, isAdmin = false) {
   return prisma.bolao.findMany({
-    where: { members: { some: { userId } } },
+    where: isAdmin ? {} : { members: { some: { userId } } },
     include: {
       _count: { select: { members: true } },
       rodadas: { orderBy: { deadline: "desc" }, take: 1 },
