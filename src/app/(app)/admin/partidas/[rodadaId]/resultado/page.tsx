@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { calcularPontos } from "@/lib/score";
+import { getFlag } from "@/lib/flags";
 import Link from "next/link";
 import BuscarPartidas from "./BuscarPartidas";
 
@@ -94,70 +95,77 @@ export default async function ResultadoPage({
         </div>
 
         {/* Lista de partidas */}
-        <div className="flex flex-col gap-3 mb-8">
+        <div
+          className="rounded-xl overflow-hidden mb-8"
+          style={{ backgroundColor: "var(--bg-surface)", border: "1px solid var(--border)" }}
+        >
           {rodada.partidas.length === 0 && (
-            <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+            <p className="text-sm px-4 py-4" style={{ color: "var(--text-muted)" }}>
               Nenhuma partida adicionada ainda.
             </p>
           )}
 
-          {rodada.partidas.map((p) => (
+          {rodada.partidas.map((p, i) => (
             <div
               key={p.id}
-              className="rounded-xl p-4"
-              style={{ backgroundColor: "var(--bg-surface)", border: "1px solid var(--border)" }}
+              className="flex items-center gap-2 px-4 py-3"
+              style={i > 0 ? { borderTop: "1px solid var(--border)" } : undefined}
             >
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3 flex-1">
-                  <span className="font-medium">{p.homeTeam}</span>
-                  {p.status === "FINISHED" ? (
-                    <span className="text-xl font-bold" style={{ color: "var(--accent)" }}>
-                      {p.homeScore} × {p.awayScore}
-                    </span>
-                  ) : (
-                    <span className="text-sm" style={{ color: "var(--text-muted)" }}>vs</span>
-                  )}
-                  <span className="font-medium">{p.awayTeam}</span>
-                </div>
+              {/* Time mandante */}
+              <span className="flex-1 text-sm font-medium text-right truncate flex items-center justify-end gap-1.5" title={p.homeTeam}>
+                {p.homeTeam}
+                <span className="text-base shrink-0">{getFlag(p.homeTeam)}</span>
+              </span>
 
-                {p.status !== "FINISHED" && (
-                  <form action={registrarResultado} className="flex items-center gap-2">
-                    <input type="hidden" name="partidaId" value={p.id} />
-                    <input
-                      name="homeScore"
-                      type="number"
-                      min="0"
-                      required
-                      placeholder="0"
-                      className="w-14 text-center rounded-lg px-2 py-1.5 outline-none text-sm"
-                      style={{ backgroundColor: "var(--bg-raised)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
-                    />
-                    <span style={{ color: "var(--text-muted)" }}>×</span>
-                    <input
-                      name="awayScore"
-                      type="number"
-                      min="0"
-                      required
-                      placeholder="0"
-                      className="w-14 text-center rounded-lg px-2 py-1.5 outline-none text-sm"
-                      style={{ backgroundColor: "var(--bg-raised)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
-                    />
-                    <button
-                      type="submit"
-                      className="text-xs px-3 py-1.5 rounded-lg font-medium transition-colors"
-                      style={{ backgroundColor: "var(--accent)", color: "#fff" }}
-                    >
-                      Salvar
-                    </button>
-                  </form>
-                )}
+              {/* Placar ou inputs */}
+              {p.status === "FINISHED" ? (
+                <span className="shrink-0 text-base font-bold tabular-nums px-2" style={{ color: "var(--accent)" }}>
+                  {p.homeScore} × {p.awayScore}
+                </span>
+              ) : (
+                <form action={registrarResultado} className="shrink-0 flex items-center gap-1.5">
+                  <input type="hidden" name="partidaId" value={p.id} />
+                  <input
+                    name="homeScore"
+                    type="number"
+                    min="0"
+                    required
+                    placeholder="0"
+                    className="w-11 text-center rounded-lg px-1 py-1.5 outline-none text-sm tabular-nums"
+                    style={{ backgroundColor: "var(--bg-raised)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+                  />
+                  <span className="text-xs" style={{ color: "var(--text-muted)" }}>×</span>
+                  <input
+                    name="awayScore"
+                    type="number"
+                    min="0"
+                    required
+                    placeholder="0"
+                    className="w-11 text-center rounded-lg px-1 py-1.5 outline-none text-sm tabular-nums"
+                    style={{ backgroundColor: "var(--bg-raised)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+                  />
+                  <button
+                    type="submit"
+                    className="text-xs px-2.5 py-1.5 rounded-lg font-medium"
+                    style={{ backgroundColor: "var(--accent)", color: "#fff" }}
+                  >
+                    Salvar
+                  </button>
+                </form>
+              )}
 
-                {p.status === "FINISHED" && (
-                  <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: "var(--accent-subtle)", color: "var(--success)" }}>
-                    Encerrada
-                  </span>
-                )}
-              </div>
+              {/* Time visitante */}
+              <span className="flex-1 text-sm font-medium truncate flex items-center gap-1.5" title={p.awayTeam}>
+                <span className="text-base shrink-0">{getFlag(p.awayTeam)}</span>
+                {p.awayTeam}
+              </span>
+
+              {/* Badge encerrada */}
+              {p.status === "FINISHED" && (
+                <span className="shrink-0 text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: "var(--accent-subtle)", color: "var(--success)" }}>
+                  ✓
+                </span>
+              )}
             </div>
           ))}
         </div>

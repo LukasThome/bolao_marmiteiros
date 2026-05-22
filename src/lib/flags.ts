@@ -1,0 +1,87 @@
+const FLAGS: Record<string, string> = {
+  // Grupo A
+  "United States": "🇺🇸",
+  "Mexico": "🇲🇽",
+  "Canada": "🇨🇦",
+  // Grupo B
+  "Argentina": "🇦🇷",
+  "Chile": "🇨🇱",
+  "Peru": "🇵🇪",
+  "Bolivia": "🇧🇴",
+  // Grupo C
+  "Brazil": "🇧🇷",
+  "Colombia": "🇨🇴",
+  "Ecuador": "🇪🇨",
+  "Venezuela": "🇻🇪",
+  // Grupo D
+  "France": "🇫🇷",
+  "Germany": "🇩🇪",
+  "Portugal": "🇵🇹",
+  "Spain": "🇪🇸",
+  // Grupo E
+  "England": "󠁧󠁢󠁥󠁮󠁧󠁿🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+  "Netherlands": "🇳🇱",
+  "Belgium": "🇧🇪",
+  "Switzerland": "🇨🇭",
+  // Grupo F
+  "Morocco": "🇲🇦",
+  "Senegal": "🇸🇳",
+  "Cameroon": "🇨🇲",
+  "Ivory Coast": "🇨🇮",
+  "Ghana": "🇬🇭",
+  "Tunisia": "🇹🇳",
+  "Nigeria": "🇳🇬",
+  "Algeria": "🇩🇿",
+  "Mali": "🇲🇱",
+  "South Africa": "🇿🇦",
+  "Egypt": "🇪🇬",
+  // Ásia
+  "Japan": "🇯🇵",
+  "South Korea": "🇰🇷",
+  "Iran": "🇮🇷",
+  "Saudi Arabia": "🇸🇦",
+  "Australia": "🇦🇺",
+  "Qatar": "🇶🇦",
+  "China": "🇨🇳",
+  "Indonesia": "🇮🇩",
+  // Europa adicional
+  "Italy": "🇮🇹",
+  "Croatia": "🇭🇷",
+  "Poland": "🇵🇱",
+  "Austria": "🇦🇹",
+  "Denmark": "🇩🇰",
+  "Turkey": "🇹🇷",
+  "Serbia": "🇷🇸",
+  "Ukraine": "🇺🇦",
+  "Romania": "🇷🇴",
+  "Hungary": "🇭🇺",
+  "Slovakia": "🇸🇰",
+  "Slovenia": "🇸🇮",
+  "Czechia": "🇨🇿",
+  "Czech Republic": "🇨🇿",
+  "Albania": "🇦🇱",
+  "Scotland": "🏴󠁧󠁢󠁳󠁣󠁴󠁿",
+  "Wales": "🏴󠁧󠁢󠁷󠁬󠁳󠁿",
+  "Greece": "🇬🇷",
+  "Finland": "🇫🇮",
+  "Norway": "🇳🇴",
+  "Sweden": "🇸🇪",
+  "Iceland": "🇮🇸",
+  "Ireland": "🇮🇪",
+  // América do Sul adicional
+  "Uruguay": "🇺🇾",
+  "Paraguay": "🇵🇾",
+  "Bolivia": "🇧🇴",
+  "Panama": "🇵🇦",
+  "Costa Rica": "🇨🇷",
+  "Honduras": "🇭🇳",
+  "Jamaica": "🇯🇲",
+  // Outros
+  "New Zealand": "🇳🇿",
+  "Nigeria": "🇳🇬",
+  "Israel": "🇮🇱",
+};
+
+export function getFlag(teamName: string): string {
+  return FLAGS[teamName] ?? "";
+}
