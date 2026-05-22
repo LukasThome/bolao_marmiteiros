@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/slugify";
 import { Prisma } from "@prisma/client";
+import { randomUUID } from "crypto";
 import Link from "next/link";
 
 export default async function NewBolaoPage({
@@ -28,6 +29,7 @@ export default async function NewBolaoPage({
         data: {
           name,
           slug,
+          inviteToken: randomUUID(),
           members: { create: { userId: session.user.id } },
         },
       });

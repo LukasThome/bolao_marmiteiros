@@ -1,8 +1,10 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
+import { randomUUID } from "crypto";
 import Link from "next/link";
 import { ChevronRight, Clock, Trophy } from "lucide-react";
+import InviteLink from "@/components/InviteLink";
 
 export default async function BolaoPage({
   params,
@@ -25,6 +27,13 @@ export default async function BolaoPage({
   });
 
   if (!bolao) redirect("/dashboard");
+
+  // Gera token para bolões criados antes desta feature
+  let inviteToken = bolao.inviteToken;
+  if (!inviteToken && isAdmin) {
+    inviteToken = randomUUID();
+    await prisma.bolao.update({ where: { id: bolao.id }, data: { inviteToken } });
+  }
 
   // Query separada para tolerar BolaoMembers com userId órfão (ex: dev bypass antigo)
   const userIds = bolao.members.map((m) => m.userId);
@@ -62,6 +71,9 @@ export default async function BolaoPage({
             </Link>
           )}
         </div>
+
+        {/* Link de convite (admin) */}
+        {isAdmin && inviteToken && <InviteLink token={inviteToken} />}
 
         {/* Ranking */}
         <div className="rounded-xl mb-6" style={{ backgroundColor: "var(--bg-surface)", border: "1px solid var(--border)" }}>

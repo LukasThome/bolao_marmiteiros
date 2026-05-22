@@ -18,6 +18,11 @@ export default defineConfig({
         "src/test/**",
         "src/types/**",
         "src/app/**",
+        // Infraestrutura sem lógica de negócio (NextAuth/Prisma wrappers)
+        "src/lib/prisma.ts",
+        "src/lib/auth.ts",
+        "src/auth.config.ts",
+        "src/proxy.ts",
       ],
       thresholds: {
         lines: 80,  
