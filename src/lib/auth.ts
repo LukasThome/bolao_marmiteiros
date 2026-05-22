@@ -4,6 +4,9 @@ import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/password";
 import { authConfig } from "@/auth.config";
 
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_MINUTES = 15;
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   session: { strategy: "jwt" },
@@ -22,7 +25,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user?.passwordHash) return null;
-        if (!verifyPassword(password, user.passwordHash)) return null;
+
+        // Conta bloqueada?
+        if (user.lockedUntil && user.lockedUntil > new Date()) return null;
+
+        if (!verifyPassword(password, user.passwordHash)) {
+          const attempts = user.failedLoginAttempts + 1;
+          await prisma.user.update({
+            where: { id: user.id },
+            data: {
+              failedLoginAttempts: attempts,
+              ...(attempts >= MAX_ATTEMPTS
+                ? { lockedUntil: new Date(Date.now() + LOCKOUT_MINUTES * 60 * 1000) }
+                : {}),
+            },
+          });
+          return null;
+        }
+
+        // Sucesso — zera contador
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { failedLoginAttempts: 0, lockedUntil: null },
+        });
 
         return { id: user.id, email: user.email, name: user.name, role: user.role };
       },
@@ -60,8 +85,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user) {
         token.id = user.id;
         token.role = (user as { role?: string }).role;
-
-        // Garante que o role vem do banco (Credentials retorna role diretamente)
         if (!token.role) {
           const dbUser = await prisma.user.findUnique({
             where: { email: user.email! },
