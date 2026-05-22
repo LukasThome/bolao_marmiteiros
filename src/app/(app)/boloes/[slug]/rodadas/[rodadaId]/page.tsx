@@ -4,6 +4,14 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import PalpiteForm from "./PalpiteForm";
 
+type MemberPalpite = {
+  userId: string;
+  userName: string;
+  homeScore: number;
+  awayScore: number;
+  pontos: number | null;
+};
+
 export default async function RodadaPalpitePage({
   params,
 }: {
@@ -11,6 +19,7 @@ export default async function RodadaPalpitePage({
 }) {
   const { slug, rodadaId } = await params;
   const session = await auth();
+  const currentUserId = session!.user.id;
 
   const rodada = await prisma.rodada.findUnique({
     where: { id: rodadaId },
@@ -20,7 +29,7 @@ export default async function RodadaPalpitePage({
         orderBy: { createdAt: "asc" },
         include: {
           palpites: {
-            where: { userId: session!.user.id },
+            where: { userId: currentUserId },
             take: 1,
           },
         },
@@ -44,9 +53,41 @@ export default async function RodadaPalpitePage({
     homeScore: p.homeScore,
     awayScore: p.awayScore,
     palpite: p.palpites[0]
-      ? { homeScore: p.palpites[0].homeScore, awayScore: p.palpites[0].awayScore }
+      ? { homeScore: p.palpites[0].homeScore, awayScore: p.palpites[0].awayScore, pontos: p.palpites[0].pontos }
       : null,
   }));
+
+  // Após o deadline: busca palpites de todos os membros
+  let allPalpites: Record<string, MemberPalpite[]> = {};
+  if (!isOpen) {
+    const palpites = await prisma.palpite.findMany({
+      where: { partida: { rodadaId } },
+      select: { partidaId: true, userId: true, homeScore: true, awayScore: true, pontos: true },
+    });
+
+    const userIds = [...new Set(palpites.map((p) => p.userId))];
+    const users = await prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, name: true },
+    });
+    const userMap = Object.fromEntries(users.map((u) => [u.id, u.name ?? "—"]));
+
+    for (const p of palpites) {
+      if (!allPalpites[p.partidaId]) allPalpites[p.partidaId] = [];
+      allPalpites[p.partidaId].push({
+        userId: p.userId,
+        userName: userMap[p.userId] ?? "—",
+        homeScore: p.homeScore,
+        awayScore: p.awayScore,
+        pontos: p.pontos,
+      });
+    }
+
+    // Ordena por pontos desc (sem resultado ainda: ordem de submissão)
+    for (const arr of Object.values(allPalpites)) {
+      arr.sort((a, b) => (b.pontos ?? -1) - (a.pontos ?? -1));
+    }
+  }
 
   return (
     <main className="min-h-screen p-6 md:p-8" style={{ backgroundColor: "var(--bg-base)", color: "var(--text-primary)" }}>
@@ -83,7 +124,12 @@ export default async function RodadaPalpitePage({
             Nenhuma partida nesta rodada ainda.
           </p>
         ) : (
-          <PalpiteForm partidas={partidas} isOpen={isOpen} />
+          <PalpiteForm
+            partidas={partidas}
+            isOpen={isOpen}
+            allPalpites={allPalpites}
+            currentUserId={currentUserId}
+          />
         )}
       </div>
     </main>
