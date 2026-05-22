@@ -3,6 +3,13 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { calcularPontos } from "@/lib/score";
 import { getFlag } from "@/lib/flags";
+import { Shield } from "lucide-react";
+
+function TeamFlag({ name }: { name: string }) {
+  const flag = getFlag(name);
+  if (flag) return <span className="text-base shrink-0">{flag}</span>;
+  return <Shield size={14} className="shrink-0" style={{ color: "var(--text-muted)" }} />;
+}
 import Link from "next/link";
 import BuscarPartidas from "./BuscarPartidas";
 
@@ -114,7 +121,7 @@ export default async function ResultadoPage({
               {/* Time mandante */}
               <span className="flex-1 text-sm font-medium text-right truncate flex items-center justify-end gap-1.5" title={p.homeTeam}>
                 {p.homeTeam}
-                <span className="text-base shrink-0">{getFlag(p.homeTeam)}</span>
+                <TeamFlag name={p.homeTeam} />
               </span>
 
               {/* Placar ou inputs */}
@@ -156,7 +163,7 @@ export default async function ResultadoPage({
 
               {/* Time visitante */}
               <span className="flex-1 text-sm font-medium truncate flex items-center gap-1.5" title={p.awayTeam}>
-                <span className="text-base shrink-0">{getFlag(p.awayTeam)}</span>
+                <TeamFlag name={p.awayTeam} />
                 {p.awayTeam}
               </span>
 

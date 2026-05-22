@@ -1,9 +1,8 @@
 import type { NextAuthConfig } from "next-auth";
-import Google from "next-auth/providers/google";
 
 // Config sem Prisma — segura para rodar no Edge runtime (middleware/proxy)
 export const authConfig: NextAuthConfig = {
-  providers: [Google],
+  providers: [],
   pages: {
     signIn: "/login",
     error: "/login",
@@ -11,7 +10,7 @@ export const authConfig: NextAuthConfig = {
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
-      const publicPaths = ["/login", "/api/auth"];
+      const publicPaths = ["/login", "/register", "/api/auth", "/api/register", "/join"];
       const isPublic = publicPaths.some((p) => nextUrl.pathname.startsWith(p));
       if (isPublic) return true;
       if (!isLoggedIn) {

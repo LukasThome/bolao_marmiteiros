@@ -3,6 +3,13 @@
 import { useState } from "react";
 import { Check, Loader2 } from "lucide-react";
 import { getFlag } from "@/lib/flags";
+import { Shield } from "lucide-react";
+
+function TeamFlag({ name }: { name: string }) {
+  const flag = getFlag(name);
+  if (flag) return <span className="text-base shrink-0">{flag}</span>;
+  return <Shield size={14} className="shrink-0" style={{ color: "var(--text-muted)" }} />;
+}
 
 type Palpite = { homeScore: number; awayScore: number; pontos: number | null } | null;
 
@@ -13,6 +20,7 @@ type Partida = {
   status: string;
   homeScore: number | null;
   awayScore: number | null;
+  scheduledAt: string | null;
   palpite: Palpite;
 };
 
@@ -90,12 +98,36 @@ export default function PalpiteForm({
     }
   }
 
+  // Agrupa partidas por dia (YYYY-MM-DD no horário de Brasília)
+  const grouped = partidas.reduce<{ day: string; label: string; items: Partida[] }[]>((acc, p) => {
+    const dayKey = p.scheduledAt
+      ? new Date(p.scheduledAt).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" })
+      : "Sem data";
+    const last = acc[acc.length - 1];
+    if (last && last.day === dayKey) {
+      last.items.push(p);
+    } else {
+      const label = p.scheduledAt
+        ? new Date(p.scheduledAt).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", weekday: "long", day: "numeric", month: "long" })
+        : "Sem data definida";
+      acc.push({ day: dayKey, label, items: [p] });
+    }
+    return acc;
+  }, []);
+
   return (
-    <div
-      className="rounded-xl overflow-hidden"
-      style={{ backgroundColor: "var(--bg-surface)", border: "1px solid var(--border)" }}
-    >
-      {partidas.map((p, i) => {
+    <div className="flex flex-col gap-4">
+      {grouped.map(({ day, label, items }) => (
+        <div key={day}>
+          {/* Cabeçalho do dia */}
+          <p className="text-xs font-semibold uppercase tracking-wide mb-2 px-1" style={{ color: "var(--text-muted)" }}>
+            {label}
+          </p>
+          <div
+            className="rounded-xl overflow-hidden"
+            style={{ backgroundColor: "var(--bg-surface)", border: "1px solid var(--border)" }}
+          >
+            {items.map((p, i) => {
         const score = scores[p.id];
         const state = states[p.id];
         const membersHere = allPalpites[p.id] ?? [];
@@ -109,12 +141,9 @@ export default function PalpiteForm({
             {/* Linha da partida */}
             <div className="flex items-center gap-2 px-4 py-3">
               {/* Time mandante */}
-              <span
-                className="flex-1 text-sm font-medium text-right truncate flex items-center justify-end gap-1.5"
-                title={p.homeTeam}
-              >
+              <span className="flex-1 text-sm font-medium text-right truncate flex items-center justify-end gap-1.5" title={p.homeTeam}>
                 {p.homeTeam}
-                <span className="text-base shrink-0">{getFlag(p.homeTeam)}</span>
+                <TeamFlag name={p.homeTeam} />
               </span>
 
               {/* Área central: placar ou inputs */}
@@ -171,11 +200,8 @@ export default function PalpiteForm({
               )}
 
               {/* Time visitante */}
-              <span
-                className="flex-1 text-sm font-medium truncate flex items-center gap-1.5"
-                title={p.awayTeam}
-              >
-                <span className="text-base shrink-0">{getFlag(p.awayTeam)}</span>
+              <span className="flex-1 text-sm font-medium truncate flex items-center gap-1.5" title={p.awayTeam}>
+                <TeamFlag name={p.awayTeam} />
                 {p.awayTeam}
               </span>
 
@@ -244,9 +270,12 @@ export default function PalpiteForm({
                 </span>
               </div>
             )}
+            </div>
+          );
+        })}
           </div>
-        );
-      })}
+        </div>
+      ))}
     </div>
   );
 }

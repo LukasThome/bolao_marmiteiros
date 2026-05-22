@@ -129,9 +129,16 @@ async function main() {
             rodadaId: rodada.id,
             homeTeam: match.homeTeam.name,
             awayTeam: match.awayTeam.name,
+            scheduledAt: new Date(match.utcDate),
           },
         });
         novas++;
+      } else if (!exists.scheduledAt) {
+        // Retroativamente preenche scheduledAt em partidas antigas
+        await prisma.partida.update({
+          where: { id: exists.id },
+          data: { scheduledAt: new Date(match.utcDate) },
+        });
       }
     }
     console.log(`     ${novas} partidas criadas, ${dayMatches.length - novas} já existiam`);

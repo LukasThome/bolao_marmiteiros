@@ -52,6 +52,7 @@ export default async function RodadaPalpitePage({
     status: p.status,
     homeScore: p.homeScore,
     awayScore: p.awayScore,
+    scheduledAt: p.scheduledAt ? p.scheduledAt.toISOString() : null,
     palpite: p.palpites[0]
       ? { homeScore: p.palpites[0].homeScore, awayScore: p.palpites[0].awayScore, pontos: p.palpites[0].pontos }
       : null,
