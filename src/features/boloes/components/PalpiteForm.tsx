@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Check, Loader2 } from "lucide-react";
-import { getFlag } from "@/lib/flags";
+import { getFlag } from "@/features/boloes/lib/flags";
 import { Shield } from "lucide-react";
 
 function TeamFlag({ name }: { name: string }) {

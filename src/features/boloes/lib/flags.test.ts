@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getFlag } from "@/lib/flags";
+import { getFlag } from "@/features/boloes/lib/flags";
 
 describe("getFlag", () => {
   it("retorna bandeira do Brasil", () => {

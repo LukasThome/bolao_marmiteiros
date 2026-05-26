@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { Prisma } from "@prisma/client";
-import JoinForm from "./JoinForm";
+import JoinForm from "@/features/auth/components/JoinForm";
 
 export default async function JoinPage({
   params,

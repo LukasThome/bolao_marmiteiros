@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { randomUUID } from "crypto";
 import Link from "next/link";
 import { ChevronRight, Clock, Trophy } from "lucide-react";
-import InviteLink from "@/components/InviteLink";
+import InviteLink from "@/features/boloes/components/InviteLink";
 
 export default async function BolaoPage({
   params,

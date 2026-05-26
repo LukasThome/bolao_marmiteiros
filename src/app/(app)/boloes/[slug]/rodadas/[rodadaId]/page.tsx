@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import PalpiteForm from "./PalpiteForm";
+import PalpiteForm from "@/features/boloes/components/PalpiteForm";
 
 type MemberPalpite = {
   userId: string;

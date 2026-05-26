@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { calcularPontos } from "@/lib/score";
-import { getFlag } from "@/lib/flags";
+import { calcularPontos } from "@/features/boloes/lib/score";
+import { getFlag } from "@/features/boloes/lib/flags";
 import { Shield } from "lucide-react";
 
 function TeamFlag({ name }: { name: string }) {
@@ -11,7 +11,7 @@ function TeamFlag({ name }: { name: string }) {
   return <Shield size={14} className="shrink-0" style={{ color: "var(--text-muted)" }} />;
 }
 import Link from "next/link";
-import BuscarPartidas from "./BuscarPartidas";
+import BuscarPartidas from "@/features/admin/components/BuscarPartidas";
 
 export default async function ResultadoPage({
   params,

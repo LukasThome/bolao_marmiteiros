@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
-import { verifyPassword } from "@/lib/password";
+import { verifyPassword } from "@/features/auth/lib/password";
 import { authConfig } from "@/auth.config";
 
 const MAX_ATTEMPTS = 5;

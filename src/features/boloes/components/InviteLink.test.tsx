@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import InviteLink from "@/components/InviteLink";
+import InviteLink from "@/features/boloes/components/InviteLink";
 
 const TOKEN = "test-token-uuid";
 

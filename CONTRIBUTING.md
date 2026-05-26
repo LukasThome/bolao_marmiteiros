@@ -2,12 +2,13 @@
 
 ## Modelo de branches
 
-| Branch | Propósito |
-|--------|-----------|
-| `develop` | Integração de desenvolvimento. PRs de feature vão aqui. |
-| `release` | Produção. Todo merge aqui dispara um deploy automático na Vercel. |
+| Branch | Propósito | Vercel |
+|--------|-----------|--------|
+| `main` | Produção. Todo merge aqui dispara um deploy de produção. | Deploy de produção |
+| `develop` | Integração de desenvolvimento. PRs de feature vão aqui. | Preview deployment |
+| `feat/xxx` | Feature isolada. Criada a partir de `develop`. | Preview deployment |
 
-> **Regra:** `develop` nunca recebe merge direto de `release`. O fluxo é sempre para frente: feature → develop → release.
+> **Regra:** o fluxo é sempre `feat/*` → `develop` → `main`. Nunca direto para `main`.
 
 ---
 
@@ -50,7 +51,8 @@ Exemplos de mensagens de commit:
 git push origin feat/nome-da-feature
 ```
 
-No GitHub, abra um PR de `feat/nome-da-feature` → `develop`.
+No GitHub, abra um PR de `feat/nome-da-feature` → `develop`.  
+A Vercel cria automaticamente um **preview deployment** para o PR.
 
 **Checklist antes de abrir o PR:**
 - [ ] `npm run typecheck` sem erros
@@ -60,8 +62,8 @@ No GitHub, abra um PR de `feat/nome-da-feature` → `develop`.
 
 ### 4. Deploy para produção
 
-Quando `develop` estiver estável, abra um PR de `develop` → `release`.  
-O merge dispara o deploy automático na Vercel.
+Quando `develop` estiver estável, abra um PR de `develop` → `main`.  
+O merge dispara o **deploy de produção** automático na Vercel.
 
 ---
 
@@ -97,15 +99,14 @@ O botão "Entrar como Dev" aparece automaticamente em `NODE_ENV=development` qua
 2. Framework: **Next.js** (detectado automaticamente)
 3. Clique em **Deploy**
 
-### 2. Definir a branch de produção como `release`
+### 2. Confirmar que a branch de produção é `main`
 
 1. No painel do projeto (`bolao-copa`), vá em **Settings → Git**
-2. Em **Production Branch**, troque de `main` para `release`
-3. Salve
+2. Confirme que **Production Branch** está como `main`
 
 A partir daí:
-- Merge em `release` → deploy de **produção**
-- Push em `develop` → **preview deployment** automático (URL temporária)
+- Merge em `main` → deploy de **produção**
+- Push em `develop` ou branches de feature → **preview deployment** automático
 
 ### 3. Variáveis de ambiente na Vercel
 

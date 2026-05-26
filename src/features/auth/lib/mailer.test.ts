@@ -8,7 +8,7 @@ vi.mock("resend", () => ({
   })),
 }));
 
-import { sendMail } from "@/lib/mailer";
+import { sendMail } from "@/features/auth/lib/mailer";
 
 beforeEach(() => {
   vi.clearAllMocks();

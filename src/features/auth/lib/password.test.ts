@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { hashPassword, verifyPassword } from "@/lib/password";
+import { hashPassword, verifyPassword } from "@/features/auth/lib/password";
 
 describe("hashPassword", () => {
   it("retorna string com formato salt:hash", () => {

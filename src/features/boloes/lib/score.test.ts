@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { calcularPontos } from "@/lib/score";
+import { calcularPontos } from "@/features/boloes/lib/score";
 
 describe("calcularPontos", () => {
   describe("placar exato → 3 pontos", () => {

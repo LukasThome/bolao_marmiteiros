@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { hashPassword } from "@/lib/password";
+import { hashPassword } from "@/features/auth/lib/password";
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
