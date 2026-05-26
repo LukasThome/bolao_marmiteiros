@@ -53,31 +53,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
 
-    // Dev bypass (apenas em desenvolvimento)
-    ...(process.env.NODE_ENV === "development" && process.env.DEV_USER_EMAIL
-      ? [
-          Credentials({
-            id: "dev-bypass",
-            name: "Dev Bypass",
-            credentials: {},
-            async authorize() {
-              let dbUser = await prisma.user.findUnique({
-                where: { email: process.env.DEV_USER_EMAIL! },
-              });
-              if (!dbUser) {
-                dbUser = await prisma.user.create({
-                  data: {
-                    email: process.env.DEV_USER_EMAIL!,
-                    name: process.env.DEV_USER_NAME ?? "Dev User",
-                    role: "ADMIN",
-                  },
-                });
-              }
-              return { id: dbUser.id, email: dbUser.email, name: dbUser.name, role: dbUser.role };
-            },
-          }),
-        ]
-      : []),
   ],
 
   callbacks: {
