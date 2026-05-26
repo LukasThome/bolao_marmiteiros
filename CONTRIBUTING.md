@@ -140,4 +140,3 @@ DEV_USER_EMAIL="dev@bolao.local"
 DEV_USER_NAME="Dev User"
 ```
 
-O botão "Dev Bypass" aparece automaticamente na tela de login em `NODE_ENV=development`.

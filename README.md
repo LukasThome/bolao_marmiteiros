@@ -64,8 +64,6 @@ NEXTAUTH_URL="http://localhost:3000"
 DATABASE_URL="mongodb+srv://<user>:<password>@<cluster>.mongodb.net/<dbname>?retryWrites=true&w=majority"
 ```
 
-O botão "Entrar como Dev" aparece automaticamente em desenvolvimento quando `DEV_USER_EMAIL` está definido.
-
 ### Variáveis completas (produção)
 
 ```env

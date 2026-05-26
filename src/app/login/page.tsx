@@ -119,19 +119,6 @@ function LoginForm() {
           </Link>
         </p>
 
-        {process.env.NODE_ENV === "development" && (
-          <button
-            onClick={() => signIn("dev-bypass", { callbackUrl: "/dashboard" })}
-            className="py-2 rounded-lg text-xs font-medium"
-            style={{
-              backgroundColor: "var(--bg-overlay)",
-              color: "var(--text-muted)",
-              border: "1px solid var(--border)",
-            }}
-          >
-            Dev Bypass
-          </button>
-        )}
       </div>
     </main>
   );
