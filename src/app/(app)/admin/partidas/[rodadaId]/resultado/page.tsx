@@ -12,6 +12,7 @@ function TeamFlag({ name }: { name: string }) {
 }
 import Link from "next/link";
 import BuscarPartidas from "@/features/admin/components/BuscarPartidas";
+import SincronizarResultados from "@/features/admin/components/SincronizarResultados";
 
 export default async function ResultadoPage({
   params,
@@ -175,6 +176,11 @@ export default async function ResultadoPage({
               )}
             </div>
           ))}
+        </div>
+
+        {/* Sincronizar resultados via API */}
+        <div className="mb-4">
+          <SincronizarResultados rodadaId={rodadaId} />
         </div>
 
         {/* Buscar jogos da API */}
