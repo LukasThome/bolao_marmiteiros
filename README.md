@@ -5,11 +5,11 @@ Plataforma de bolão esportivo com palpites, ranking automático e distribuiçã
 ## Stack
 
 - **Next.js 16** (App Router, Turbopack)
-- **NextAuth v5** (Google OAuth + JWT)
+- **NextAuth v5** (Credentials — email + senha com PBKDF2+salt)
 - **Prisma 6** + **MongoDB Atlas**
 - **Tailwind CSS v4**
-- **Zustand** (estado client-side)
-- **Vitest** (unit/integration) + **Cypress** (E2E/CT)
+- **Resend** (envio de e-mail para reset de senha)
+- **Vitest** (testes unitários)
 
 ---
 
@@ -54,19 +54,26 @@ Acesse [http://localhost:3000](http://localhost:3000).
 
 ## Variáveis de ambiente
 
-### Rodar localmente SEM Google OAuth e SEM MongoDB
+### Variáveis mínimas (sem serviços externos)
 
 ```env
 DEV_USER_EMAIL="dev@bolao.local"
 DEV_USER_NAME="Dev User"
 NEXTAUTH_SECRET="qualquer-string-longa-aqui"
 NEXTAUTH_URL="http://localhost:3000"
+DATABASE_URL="mongodb+srv://<user>:<password>@<cluster>.mongodb.net/<dbname>?retryWrites=true&w=majority"
 ```
 
-### Rodar com banco de dados real (MongoDB Atlas)
+O botão "Entrar como Dev" aparece automaticamente em desenvolvimento quando `DEV_USER_EMAIL` está definido.
+
+### Variáveis completas (produção)
 
 ```env
-DATABASE_URL="mongodb+srv://<user>:<password>@<cluster>.mongodb.net/<dbname>?retryWrites=true&w=majority"
+DATABASE_URL="mongodb+srv://..."
+NEXTAUTH_SECRET="..."
+NEXTAUTH_URL="https://seu-dominio.vercel.app"
+RESEND_API_KEY="re_..."          # envio de e-mails (reset de senha)
+RESEND_FROM="Bolão dos Marmiteiros <noreply@seu-dominio.com>"  # opcional
 ```
 
 Para popular o banco com dados iniciais:
@@ -74,13 +81,6 @@ Para popular o banco com dados iniciais:
 ```bash
 npm run db:push    # sincroniza o schema
 npm run db:seed    # insere bolão e partidas de exemplo
-```
-
-### Login com Google OAuth (opcional em dev)
-
-```env
-GOOGLE_CLIENT_ID="..."
-GOOGLE_CLIENT_SECRET="..."
 ```
 
 ---
@@ -96,7 +96,6 @@ GOOGLE_CLIENT_SECRET="..."
 | `npm run db:generate`   | Regenera o Prisma Client                |
 | `npm run db:push`       | Sincroniza schema com o banco           |
 | `npm run db:seed`       | Popula o banco com dados iniciais       |
-| `npm run cypress:open`  | Cypress interativo (E2E + CT)           |
 | `npm run lint`          | ESLint                                  |
 | `npm run typecheck`     | TypeScript sem emitir                   |
 
@@ -115,12 +114,7 @@ src/
     api/            # Route handlers
   components/       # Componentes reutilizáveis
   lib/              # Auth, Prisma, utilitários, scoring
-  stores/           # Zustand stores
-  types/            # Tipos globais
 prisma/
   schema.prisma     # Schema MongoDB
   seed.ts           # Dados iniciais
-cypress/
-  e2e/              # Testes E2E (Gherkin + Cypress)
-  component/        # Testes de componente
 ```

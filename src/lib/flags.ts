@@ -71,14 +71,12 @@ const FLAGS: Record<string, string> = {
   // América do Sul adicional
   "Uruguay": "🇺🇾",
   "Paraguay": "🇵🇾",
-  "Bolivia": "🇧🇴",
   "Panama": "🇵🇦",
   "Costa Rica": "🇨🇷",
   "Honduras": "🇭🇳",
   "Jamaica": "🇯🇲",
   // Outros
   "New Zealand": "🇳🇿",
-  "Nigeria": "🇳🇬",
   "Israel": "🇮🇱",
 };
 

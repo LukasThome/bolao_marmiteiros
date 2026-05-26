@@ -23,7 +23,7 @@ export default async function DashboardPage() {
           <div>
             <h1 className="text-2xl font-bold">🍱 Bolão dos Marmiteiros</h1>
             <p className="text-sm mt-0.5" style={{ color: "var(--text-secondary)" }}>
-              Bem-vindo, {session?.user?.name}
+              Bem-vindo, {session?.user?.name ?? "usuário"}
               {isAdmin && (
                 <span className="ml-2 text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: "var(--gold-subtle)", color: "var(--gold)" }}>
                   ADMIN

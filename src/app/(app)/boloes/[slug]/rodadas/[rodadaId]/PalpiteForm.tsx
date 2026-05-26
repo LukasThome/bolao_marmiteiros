@@ -83,7 +83,10 @@ export default function PalpiteForm({
     const { home, away } = scores[partidaId];
     const homeScore = parseInt(home);
     const awayScore = parseInt(away);
-    if (isNaN(homeScore) || isNaN(awayScore) || homeScore < 0 || awayScore < 0) return;
+    if (isNaN(homeScore) || isNaN(awayScore) || homeScore < 0 || awayScore < 0) {
+      setStates((s) => ({ ...s, [partidaId]: "error" }));
+      return;
+    }
 
     setStates((s) => ({ ...s, [partidaId]: "saving" }));
     try {

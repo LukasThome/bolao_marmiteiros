@@ -4,7 +4,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 
-export default function RegisterPage() {
+export default function JoinForm({ token, bolaoName }: { token: string; bolaoName: string }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -29,16 +29,27 @@ export default function RegisterPage() {
       return;
     }
 
-    // Login automático após registro
-    await signIn("credentials", { email, password, callbackUrl: "/dashboard" });
+    // Auto-login redirects back to this page; server completes the join
+    await signIn("credentials", { email, password, callbackUrl: `/join/${token}` });
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center" style={{ backgroundColor: "var(--bg-base)", color: "var(--text-primary)" }}>
-      <div className="flex flex-col gap-5 p-8 rounded-2xl w-full max-w-sm" style={{ backgroundColor: "var(--bg-surface)", border: "1px solid var(--border)" }}>
+    <main
+      className="min-h-screen flex items-center justify-center"
+      style={{ backgroundColor: "var(--bg-base)", color: "var(--text-primary)" }}
+    >
+      <div
+        className="flex flex-col gap-5 p-8 rounded-2xl w-full max-w-sm"
+        style={{ backgroundColor: "var(--bg-surface)", border: "1px solid var(--border)" }}
+      >
         <div>
-          <h1 className="text-xl font-bold mb-1">🍱 Criar conta</h1>
-          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Cadastre-se para participar do bolão</p>
+          <h1 className="text-xl font-bold mb-1">🍱 Bolão dos Marmiteiros</h1>
+          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+            Você foi convidado para{" "}
+            <span className="font-semibold" style={{ color: "var(--text-primary)" }}>
+              {bolaoName}
+            </span>
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
@@ -49,7 +60,11 @@ export default function RegisterPage() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="rounded-lg px-3 py-2.5 text-sm outline-none"
-            style={{ backgroundColor: "var(--bg-raised)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+            style={{
+              backgroundColor: "var(--bg-raised)",
+              border: "1px solid var(--border)",
+              color: "var(--text-primary)",
+            }}
           />
           <input
             type="email"
@@ -58,7 +73,11 @@ export default function RegisterPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="rounded-lg px-3 py-2.5 text-sm outline-none"
-            style={{ backgroundColor: "var(--bg-raised)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+            style={{
+              backgroundColor: "var(--bg-raised)",
+              border: "1px solid var(--border)",
+              color: "var(--text-primary)",
+            }}
           />
           <input
             type="password"
@@ -68,24 +87,39 @@ export default function RegisterPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="rounded-lg px-3 py-2.5 text-sm outline-none"
-            style={{ backgroundColor: "var(--bg-raised)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+            style={{
+              backgroundColor: "var(--bg-raised)",
+              border: "1px solid var(--border)",
+              color: "var(--text-primary)",
+            }}
           />
+
           {error && (
-            <p className="text-xs" style={{ color: "var(--danger)" }}>{error}</p>
+            <p className="text-xs" style={{ color: "var(--danger)" }}>
+              {error}
+            </p>
           )}
+
           <button
             type="submit"
             disabled={loading}
             className="py-2.5 rounded-lg text-sm font-medium"
-            style={{ backgroundColor: "var(--accent)", color: "#fff", opacity: loading ? 0.7 : 1 }}
+            style={{
+              backgroundColor: "var(--accent)",
+              color: "#fff",
+              opacity: loading ? 0.7 : 1,
+              cursor: loading ? "not-allowed" : "pointer",
+            }}
           >
-            {loading ? "Criando conta..." : "Criar conta"}
+            {loading ? "Criando conta..." : "Criar conta e entrar"}
           </button>
         </form>
 
         <p className="text-xs text-center" style={{ color: "var(--text-muted)" }}>
           Já tem conta?{" "}
-          <Link href="/login" style={{ color: "var(--accent)" }}>Entrar</Link>
+          <Link href={`/login?callbackUrl=/join/${token}`} style={{ color: "var(--accent)" }}>
+            Entrar
+          </Link>
         </p>
       </div>
     </main>

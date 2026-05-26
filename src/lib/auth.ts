@@ -19,7 +19,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         password: { label: "Senha", type: "password" },
       },
       async authorize(credentials) {
-        const email = credentials?.email as string | undefined;
+        const email = (credentials?.email as string | undefined)?.toLowerCase().trim();
         const password = credentials?.password as string | undefined;
         if (!email || !password) return null;
 
@@ -83,8 +83,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id;
-        token.role = (user as { role?: string }).role;
+        token.id = user.id ?? "";
+        token.role = (user as { role?: string }).role ?? "MEMBER";
         if (!token.role) {
           const dbUser = await prisma.user.findUnique({
             where: { email: user.email! },

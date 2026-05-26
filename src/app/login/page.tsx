@@ -28,7 +28,7 @@ function LoginForm() {
 
     const res = await signIn("credentials", { email, password, redirect: false });
 
-    if (!res?.ok) {
+    if (!res?.ok || res?.error) {
       // Consulta o status de bloqueio para dar mensagem adequada
       const statusRes = await fetch(`/api/auth/lockout-status?email=${encodeURIComponent(email)}`);
       const status = await statusRes.json();
@@ -112,17 +112,12 @@ function LoginForm() {
           </button>
         </form>
 
-        <div className="flex items-center justify-between text-xs" style={{ color: "var(--text-muted)" }}>
-          <Link href="/forgot-password" style={{ color: "var(--accent)" }}>
-            Esqueceu a senha?
+        <p className="text-xs text-center" style={{ color: "var(--text-muted)" }}>
+          Não tem conta?{" "}
+          <Link href="/register" style={{ color: "var(--accent)" }}>
+            Criar conta
           </Link>
-          <span>
-            Não tem conta?{" "}
-            <Link href="/register" style={{ color: "var(--accent)" }}>
-              Criar conta
-            </Link>
-          </span>
-        </div>
+        </p>
 
         {process.env.NODE_ENV === "development" && (
           <button
