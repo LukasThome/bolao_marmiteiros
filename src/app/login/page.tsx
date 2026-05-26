@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
+import { toast } from "sonner";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
@@ -18,33 +19,31 @@ function LoginForm() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError("");
     setLoading(true);
 
     const res = await signIn("credentials", { email, password, redirect: false });
 
     if (!res?.ok || res?.error) {
-      // Consulta o status de bloqueio para dar mensagem adequada
       const statusRes = await fetch(`/api/auth/lockout-status?email=${encodeURIComponent(email)}`);
       const status = await statusRes.json();
 
       if (status.locked) {
-        setError(`Conta bloqueada. Tente novamente em ${formatTime(status.remainingSeconds)}.`);
+        toast.error(`Conta bloqueada. Tente novamente em ${formatTime(status.remainingSeconds)}.`);
       } else if (status.attempts >= 4) {
-        setError(`Senha incorreta. Mais ${5 - status.attempts} tentativa(s) antes do bloqueio.`);
+        toast.error(`Senha incorreta. Mais ${5 - status.attempts} tentativa(s) antes do bloqueio.`);
       } else {
-        setError("Email ou senha incorretos.");
+        toast.error("Email ou senha incorretos.");
       }
-    } else {
-      window.location.href = callbackUrl;
-    }
 
-    setLoading(false);
+      setLoading(false);
+    } else {
+      toast.success("Login realizado com sucesso!");
+      setTimeout(() => { window.location.href = callbackUrl; }, 1000);
+    }
   }
 
   return (
@@ -91,12 +90,6 @@ function LoginForm() {
             }}
           />
 
-          {error && (
-            <p className="text-xs" style={{ color: "var(--danger)" }}>
-              {error}
-            </p>
-          )}
-
           <button
             type="submit"
             disabled={loading}
@@ -118,7 +111,6 @@ function LoginForm() {
             Criar conta
           </Link>
         </p>
-
       </div>
     </main>
   );
