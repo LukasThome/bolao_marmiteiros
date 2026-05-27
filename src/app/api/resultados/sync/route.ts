@@ -11,6 +11,19 @@ type SyncFixture = {
   awayScore: number;
 };
 
+type FdMatch = {
+  status: string;
+  homeTeam: { name: string };
+  awayTeam: { name: string };
+  score: { fullTime: { home: number | null; away: number | null } };
+};
+
+type RapidFixture = {
+  fixture: { status: { short: string } };
+  teams: { home: { name: string }; away: { name: string } };
+  goals: { home: number | null; away: number | null };
+};
+
 async function fetchFinishedMatches(dateFrom: string, dateTo: string): Promise<SyncFixture[]> {
   const fdKey = process.env.FOOTBALL_DATA_API_KEY;
   const rapidKey = process.env.RAPIDAPI_KEY;
@@ -23,19 +36,13 @@ async function fetchFinishedMatches(dateFrom: string, dateTo: string): Promise<S
     );
     if (res.ok) {
       const data = await res.json();
-      type FdMatch = {
-        status: string;
-        homeTeam: { name: string };
-        awayTeam: { name: string };
-        score: { fullTime: { home: number | null; away: number | null } };
-      };
       return ((data.matches ?? []) as FdMatch[])
         .filter((m) => m.status === "FINISHED" && m.score?.fullTime?.home !== null)
         .map((m) => ({
           homeTeam: m.homeTeam.name,
           awayTeam: m.awayTeam.name,
-          homeScore: m.score.fullTime.home!,
-          awayScore: m.score.fullTime.away!,
+          homeScore: m.score.fullTime.home ?? 0,
+          awayScore: m.score.fullTime.away ?? 0,
         }));
     }
   }
@@ -53,18 +60,13 @@ async function fetchFinishedMatches(dateFrom: string, dateTo: string): Promise<S
     );
     if (res.ok) {
       const data = await res.json();
-      type RapidFixture = {
-        fixture: { status: { short: string } };
-        teams: { home: { name: string }; away: { name: string } };
-        goals: { home: number | null; away: number | null };
-      };
       return ((data.response ?? []) as RapidFixture[])
         .filter((f) => f.fixture?.status?.short === "FT" && f.goals?.home !== null)
         .map((f) => ({
           homeTeam: f.teams.home.name,
           awayTeam: f.teams.away.name,
-          homeScore: f.goals.home!,
-          awayScore: f.goals.away!,
+          homeScore: f.goals.home ?? 0,
+          awayScore: f.goals.away ?? 0,
         }));
     }
   }
@@ -76,8 +78,8 @@ export async function POST(req: NextRequest) {
   const { error } = await requireAdmin();
   if (error) return error;
 
-  const body = await req.json().catch(() => ({}));
-  const { rodadaId } = body as { rodadaId?: string };
+  const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
+  const rodadaId = typeof body.rodadaId === "string" ? body.rodadaId : null;
   if (!rodadaId) return NextResponse.json({ error: "rodadaId obrigatório" }, { status: 400 });
 
   const rodada = await prisma.rodada.findUnique({
@@ -107,7 +109,8 @@ export async function POST(req: NextRequest) {
       dateTo.toISOString().slice(0, 10)
     );
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 502 });
+    const message = e instanceof Error ? e.message : "Erro ao buscar resultados";
+    return NextResponse.json({ error: message }, { status: 502 });
   }
 
   let synced = 0;
