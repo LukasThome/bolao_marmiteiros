@@ -51,7 +51,7 @@ export default function BuscarPartidas({
       if (!res.ok) {
         setError(data.error ?? "Erro ao buscar jogos");
       } else {
-        setFixtures(data.fixtures);
+        setFixtures((data.fixtures as Fixture[]).filter((f) => f.homeTeam && f.awayTeam));
       }
     } catch {
       setError("Erro de conexão");
@@ -90,8 +90,8 @@ export default function BuscarPartidas({
       added.has(fixture.id) ||
       existingTeams.some(
         (t) =>
-          t.toLowerCase() === fixture.homeTeam.toLowerCase() ||
-          t.toLowerCase() === fixture.awayTeam.toLowerCase()
+          t?.toLowerCase() === fixture.homeTeam?.toLowerCase() ||
+          t?.toLowerCase() === fixture.awayTeam?.toLowerCase()
       )
     );
   }
