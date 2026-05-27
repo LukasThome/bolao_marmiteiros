@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/role-guard";
 import { prisma } from "@/lib/prisma";
-import { calcularPontos } from "@/features/boloes/lib/score";
 import { normalizeTeamName } from "@/lib/team-aliases";
+import { pontuarPalpites } from "@/features/boloes/lib/pontuacao";
 
 type SyncFixture = {
   homeTeam: string;
@@ -24,51 +24,76 @@ type RapidFixture = {
   goals: { home: number | null; away: number | null };
 };
 
+const FD_API_URL = new URL("https://api.football-data.org/v4/competitions/WC/matches");
+const RAPID_API_URL = new URL("https://api-football-v1.p.rapidapi.com/v3/fixtures");
+
+async function fetchFromFootballData(
+  dateFrom: string,
+  dateTo: string,
+  apiKey: string
+): Promise<SyncFixture[] | null> {
+  const url = new URL(FD_API_URL.toString());
+  url.searchParams.set("season", "2026");
+  url.searchParams.set("dateFrom", dateFrom);
+  url.searchParams.set("dateTo", dateTo);
+  url.searchParams.set("status", "FINISHED");
+
+  const res = await fetch(url, { headers: { "X-Auth-Token": apiKey } });
+  if (!res.ok) return null;
+
+  const data = await res.json();
+  return ((data.matches ?? []) as FdMatch[])
+    .filter((m) => m.status === "FINISHED" && m.score?.fullTime?.home !== null)
+    .map((m) => ({
+      homeTeam: m.homeTeam.name,
+      awayTeam: m.awayTeam.name,
+      homeScore: m.score.fullTime.home ?? 0,
+      awayScore: m.score.fullTime.away ?? 0,
+    }));
+}
+
+async function fetchFromRapidAPI(
+  dateFrom: string,
+  dateTo: string,
+  apiKey: string
+): Promise<SyncFixture[] | null> {
+  const url = new URL(RAPID_API_URL.toString());
+  url.searchParams.set("league", "1");
+  url.searchParams.set("season", "2026");
+  url.searchParams.set("from", dateFrom);
+  url.searchParams.set("to", dateTo);
+
+  const res = await fetch(url, {
+    headers: {
+      "X-RapidAPI-Key": apiKey,
+      "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com",
+    },
+  });
+  if (!res.ok) return null;
+
+  const data = await res.json();
+  return ((data.response ?? []) as RapidFixture[])
+    .filter((f) => f.fixture?.status?.short === "FT" && f.goals?.home !== null)
+    .map((f) => ({
+      homeTeam: f.teams.home.name,
+      awayTeam: f.teams.away.name,
+      homeScore: f.goals.home ?? 0,
+      awayScore: f.goals.away ?? 0,
+    }));
+}
+
 async function fetchFinishedMatches(dateFrom: string, dateTo: string): Promise<SyncFixture[]> {
   const fdKey = process.env.FOOTBALL_DATA_API_KEY;
   const rapidKey = process.env.RAPIDAPI_KEY;
 
   if (fdKey) {
-    const qs = new URLSearchParams({ season: "2026", dateFrom, dateTo, status: "FINISHED" });
-    const res = await fetch(
-      `https://api.football-data.org/v4/competitions/WC/matches?${qs}`,
-      { headers: { "X-Auth-Token": fdKey } }
-    );
-    if (res.ok) {
-      const data = await res.json();
-      return ((data.matches ?? []) as FdMatch[])
-        .filter((m) => m.status === "FINISHED" && m.score?.fullTime?.home !== null)
-        .map((m) => ({
-          homeTeam: m.homeTeam.name,
-          awayTeam: m.awayTeam.name,
-          homeScore: m.score.fullTime.home ?? 0,
-          awayScore: m.score.fullTime.away ?? 0,
-        }));
-    }
+    const result = await fetchFromFootballData(dateFrom, dateTo, fdKey);
+    if (result) return result;
   }
 
   if (rapidKey) {
-    const qs = new URLSearchParams({ league: "1", season: "2026", from: dateFrom, to: dateTo });
-    const res = await fetch(
-      `https://api-football-v1.p.rapidapi.com/v3/fixtures?${qs}`,
-      {
-        headers: {
-          "X-RapidAPI-Key": rapidKey,
-          "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com",
-        },
-      }
-    );
-    if (res.ok) {
-      const data = await res.json();
-      return ((data.response ?? []) as RapidFixture[])
-        .filter((f) => f.fixture?.status?.short === "FT" && f.goals?.home !== null)
-        .map((f) => ({
-          homeTeam: f.teams.home.name,
-          awayTeam: f.teams.away.name,
-          homeScore: f.goals.home ?? 0,
-          awayScore: f.goals.away ?? 0,
-        }));
-    }
+    const result = await fetchFromRapidAPI(dateFrom, dateTo, rapidKey);
+    if (result) return result;
   }
 
   throw new Error("Nenhuma chave de API configurada (FOOTBALL_DATA_API_KEY ou RAPIDAPI_KEY)");
@@ -140,18 +165,7 @@ export async function POST(req: NextRequest) {
       include: { partida: { include: { rodada: { include: { bolao: true } } } } },
     });
 
-    for (const palpite of palpites) {
-      const pontos = calcularPontos(
-        { homeScore: palpite.homeScore, awayScore: palpite.awayScore },
-        { homeScore, awayScore }
-      );
-      await prisma.palpite.update({ where: { id: palpite.id }, data: { pontos } });
-      await prisma.bolaoMember.updateMany({
-        where: { userId: palpite.userId, bolaoId: palpite.partida.rodada.bolao.id },
-        data: { totalPts: { increment: pontos } },
-      });
-    }
-
+    await pontuarPalpites(palpites, { homeScore, awayScore });
     synced++;
   }
 
