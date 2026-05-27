@@ -76,7 +76,7 @@ export default function PalpiteForm({
   );
 
   const [states, setStates] = useState<Record<string, SaveState>>(() =>
-    Object.fromEntries(partidas.map((p) => [p.id, p.palpite ? "saved" : "idle"]))
+    Object.fromEntries(partidas.map((p) => [p.id, "idle"]))
   );
 
   async function savePalpite(partidaId: string) {
@@ -95,7 +95,12 @@ export default function PalpiteForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ partidaId, homeScore, awayScore }),
       });
-      setStates((s) => ({ ...s, [partidaId]: res.ok ? "saved" : "error" }));
+      if (res.ok) {
+        setStates((s) => ({ ...s, [partidaId]: "saved" }));
+        setTimeout(() => setStates((s) => ({ ...s, [partidaId]: "idle" })), 2000);
+      } else {
+        setStates((s) => ({ ...s, [partidaId]: "error" }));
+      }
     } catch {
       setStates((s) => ({ ...s, [partidaId]: "error" }));
     }
@@ -212,13 +217,13 @@ export default function PalpiteForm({
               {isOpen && (
                 <button
                   onClick={() => savePalpite(p.id)}
-                  disabled={state === "saving" || state === "saved"}
+                  disabled={state === "saving"}
                   className="shrink-0 flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg font-medium transition-all min-w-[58px] justify-center"
                   style={{
                     backgroundColor: state === "saved" ? "var(--accent-subtle)" : "var(--accent)",
                     color: state === "saved" ? "var(--accent)" : "#fff",
                     opacity: state === "saving" ? 0.7 : 1,
-                    cursor: state === "saved" ? "default" : "pointer",
+                    cursor: state === "saving" ? "not-allowed" : "pointer",
                   }}
                 >
                   {state === "saving" && <Loader2 size={11} className="animate-spin" />}

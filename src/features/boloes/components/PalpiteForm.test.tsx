@@ -50,11 +50,14 @@ describe("PalpiteForm", () => {
     expect(screen.getByText("França")).toBeDefined();
   });
 
-  it("pré-preenche inputs com palpite existente", () => {
+  it("pré-preenche inputs com palpite existente e botão sempre habilitado para editar", () => {
     render(<PalpiteForm partidas={PARTIDAS_ABERTAS} isOpen={true} />);
     const inputs = screen.getAllByRole("spinbutton") as HTMLInputElement[];
     const homeInput = inputs.find((i) => i.value === "2");
     expect(homeInput).toBeDefined();
+    // botão nunca desabilitado por palpite existente
+    const btns = screen.getAllByRole("button", { name: /salvar/i });
+    btns.forEach((btn) => expect((btn as HTMLButtonElement).disabled).toBe(false));
   });
 
   it("exibe placares reais para partidas finalizadas", () => {
