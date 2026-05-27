@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/role-guard";
 import { prisma } from "@/lib/prisma";
+import { getLockTime } from "@/features/boloes/lib/lockTime";
 
 export async function POST(req: NextRequest) {
   const { session, error } = await requireAuth();
@@ -18,14 +19,15 @@ export async function POST(req: NextRequest) {
 
   const partida = await prisma.partida.findUnique({
     where: { id: partidaId },
-    include: { rodada: true },
+    include: { rodada: { include: { partidas: { select: { scheduledAt: true } } } } },
   });
 
   if (!partida) {
     return NextResponse.json({ error: "Partida não encontrada" }, { status: 404 });
   }
 
-  if (new Date() > new Date(partida.rodada.deadline)) {
+  const lockTime = getLockTime({ deadline: partida.rodada.deadline, partidas: partida.rodada.partidas });
+  if (new Date() > lockTime) {
     return NextResponse.json({ error: "Prazo encerrado" }, { status: 403 });
   }
 
