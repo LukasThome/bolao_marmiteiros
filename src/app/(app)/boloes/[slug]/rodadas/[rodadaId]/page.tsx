@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import PalpiteForm from "@/features/boloes/components/PalpiteForm";
+import Countdown from "@/features/boloes/components/Countdown";
+import { getLockTime } from "@/features/boloes/lib/lockTime";
 
 type MemberPalpite = {
   userId: string;
@@ -39,8 +41,9 @@ export default async function RodadaPalpitePage({
 
   if (!rodada || rodada.bolao.slug !== slug) redirect("/dashboard");
 
-  const isOpen = new Date() < new Date(rodada.deadline);
-  const deadline = new Date(rodada.deadline).toLocaleString("pt-BR", {
+  const lockTime = getLockTime({ deadline: rodada.deadline, partidas: rodada.partidas });
+  const isOpen = new Date() < lockTime;
+  const deadlineLabel = lockTime.toLocaleString("pt-BR", {
     dateStyle: "short",
     timeStyle: "short",
   });
@@ -104,7 +107,7 @@ export default async function RodadaPalpitePage({
           <h1 className="text-2xl font-bold">{rodada.name}</h1>
         </div>
 
-        <div className="flex items-center gap-2 mb-6">
+        <div className="flex items-center gap-2 mb-6 flex-wrap">
           <span
             className="text-xs px-2 py-0.5 rounded-full font-medium"
             style={{
@@ -116,8 +119,9 @@ export default async function RodadaPalpitePage({
             {isOpen ? "Aberto" : "Encerrado"}
           </span>
           <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
-            prazo {deadline}
+            prazo {deadlineLabel}
           </span>
+          {isOpen && <Countdown deadline={lockTime.toISOString()} />}
         </div>
 
         {partidas.length === 0 ? (
