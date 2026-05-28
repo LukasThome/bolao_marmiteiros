@@ -104,6 +104,26 @@ describe("PalpiteForm", () => {
     expect(screen.getByText("1 pts")).toBeDefined();
   });
 
+  it("salvar todos chama batch endpoint com palpites preenchidos", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ saved: 2, errors: [] }),
+    }));
+
+    render(<PalpiteForm partidas={PARTIDAS_ABERTAS} isOpen={true} />);
+
+    const inputs = screen.getAllByRole("spinbutton") as HTMLInputElement[];
+    fireEvent.change(inputs[0], { target: { value: "1" } });
+    fireEvent.change(inputs[1], { target: { value: "0" } });
+
+    const saveAllBtn = screen.getByRole("button", { name: /salvar todos/i });
+    fireEvent.click(saveAllBtn);
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith("/api/palpites/batch", expect.objectContaining({ method: "POST" }));
+    });
+  });
+
   it("exibe palpites de todos os membros quando encerrado", () => {
     const allPalpites = {
       p1: [
