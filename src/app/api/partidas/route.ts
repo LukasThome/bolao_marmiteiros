@@ -6,7 +6,7 @@ export async function POST(req: NextRequest) {
   const { error } = await requireAdmin();
   if (error) return error;
 
-  const { rodadaId, homeTeam, awayTeam } = await req.json();
+  const { rodadaId, homeTeam, awayTeam, group } = await req.json();
 
   if (!rodadaId || !homeTeam?.trim() || !awayTeam?.trim()) {
     return NextResponse.json(
@@ -20,6 +20,7 @@ export async function POST(req: NextRequest) {
       rodadaId,
       homeTeam: homeTeam.trim(),
       awayTeam: awayTeam.trim(),
+      ...(group?.trim() ? { group: group.trim() } : {}),
     },
   });
 

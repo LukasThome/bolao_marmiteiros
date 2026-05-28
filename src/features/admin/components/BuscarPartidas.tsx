@@ -17,6 +17,7 @@ type Fixture = {
   date: string;
   status: string;
   round: string;
+  group: string;
   homeTeam: string;
   awayTeam: string;
 };
@@ -70,6 +71,7 @@ export default function BuscarPartidas({
           rodadaId,
           homeTeam: fixture.homeTeam,
           awayTeam: fixture.awayTeam,
+          group: fixture.group || fixture.round || undefined,
         }),
       });
       if (res.ok) {

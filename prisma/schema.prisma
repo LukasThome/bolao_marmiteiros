@@ -120,6 +120,7 @@ model Partida {
   rodadaId    String        @db.ObjectId
   homeTeam    String
   awayTeam    String
+  group       String?
   homeScore   Int?
   awayScore   Int?
   status      PartidaStatus @default(SCHEDULED)

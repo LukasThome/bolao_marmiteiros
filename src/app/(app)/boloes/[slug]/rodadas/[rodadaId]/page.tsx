@@ -52,6 +52,7 @@ export default async function RodadaPalpitePage({
     id: p.id,
     homeTeam: p.homeTeam,
     awayTeam: p.awayTeam,
+    group: p.group ?? null,
     status: p.status,
     homeScore: p.homeScore,
     awayScore: p.awayScore,
