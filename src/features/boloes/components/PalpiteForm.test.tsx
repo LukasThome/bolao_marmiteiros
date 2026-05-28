@@ -7,6 +7,7 @@ const PARTIDAS_ABERTAS = [
     id: "p1",
     homeTeam: "Brasil",
     awayTeam: "Argentina",
+    group: "Grupo C",
     status: "SCHEDULED",
     homeScore: null,
     awayScore: null,
@@ -17,6 +18,7 @@ const PARTIDAS_ABERTAS = [
     id: "p2",
     homeTeam: "França",
     awayTeam: "Alemanha",
+    group: "Grupo C",
     status: "SCHEDULED",
     homeScore: null,
     awayScore: null,
@@ -30,6 +32,7 @@ const PARTIDAS_FECHADAS = [
     id: "p1",
     homeTeam: "Brasil",
     awayTeam: "Argentina",
+    group: "Grupo C",
     status: "FINISHED",
     homeScore: 3,
     awayScore: 1,
@@ -50,13 +53,13 @@ describe("PalpiteForm", () => {
     expect(screen.getByText("França")).toBeDefined();
   });
 
-  it("pré-preenche inputs com palpite existente e botão sempre habilitado para editar", () => {
+  it("pré-preenche inputs com palpite existente e botões habilitados", () => {
     render(<PalpiteForm partidas={PARTIDAS_ABERTAS} isOpen={true} />);
     const inputs = screen.getAllByRole("spinbutton") as HTMLInputElement[];
     const homeInput = inputs.find((i) => i.value === "2");
     expect(homeInput).toBeDefined();
-    // botão nunca desabilitado por palpite existente
-    const btns = screen.getAllByRole("button", { name: /salvar/i });
+    // botões individuais por partida estão habilitados (Salvar / Editar)
+    const btns = screen.getAllByRole("button", { name: /salvar$|editar/i });
     btns.forEach((btn) => expect((btn as HTMLButtonElement).disabled).toBe(false));
   });
 
@@ -77,8 +80,9 @@ describe("PalpiteForm", () => {
     fireEvent.change(inputs[0], { target: { value: "1" } });
     fireEvent.change(inputs[1], { target: { value: "0" } });
 
-    const saveButtons = screen.getAllByRole("button", { name: /salvar/i });
-    fireEvent.click(saveButtons[0]);
+    // Clica no botão "Atualizar" da primeira partida (ficou dirty após a mudança)
+    const updateButton = screen.getByRole("button", { name: /atualizar/i });
+    fireEvent.click(updateButton);
 
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith("/api/palpites", expect.objectContaining({ method: "POST" }));
