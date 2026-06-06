@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { randomUUID } from "crypto";
 import Link from "next/link";
-import { ChevronRight, Clock, Trophy } from "lucide-react";
+import { ChevronRight, Clock, Trophy, User } from "lucide-react";
 import InviteLink from "@/features/boloes/components/InviteLink";
 
 export default async function BolaoPage({
@@ -46,15 +46,42 @@ export default async function BolaoPage({
 
   const now = new Date();
   const hasPoints = members.some((m) => m.totalPts > 0);
+  const currentUser = session?.user;
 
   return (
     <main className="min-h-screen p-6 md:p-8" style={{ backgroundColor: "var(--bg-base)", color: "var(--text-primary)" }}>
       <div className="max-w-2xl mx-auto">
-        <Link href="/dashboard" className="text-sm mb-1 inline-block" style={{ color: "var(--text-secondary)" }}>
-          ← Voltar
-        </Link>
+        {/* Header com Voltar e Avatar */}
+        <div className="flex items-center justify-between mb-8">
+          <Link href="/dashboard" className="text-sm" style={{ color: "var(--text-secondary)" }}>
+            ← Voltar
+          </Link>
+          
+          {currentUser && (
+            <Link
+              href={`/boloes/${slug}/perfil`}
+              className="rounded-full overflow-hidden hover:opacity-75 transition-opacity"
+              style={{ width: "40px", height: "40px" }}
+            >
+              {currentUser.image ? (
+                <img
+                  src={currentUser.image}
+                  alt={currentUser.name || "Perfil"}
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                />
+              ) : (
+                <div
+                  className="w-full h-full flex items-center justify-center"
+                  style={{ backgroundColor: "var(--accent)" }}
+                >
+                  <User size={20} style={{ color: "#fff" }} />
+                </div>
+              )}
+            </Link>
+          )}
+        </div>
 
-        <div className="flex items-center justify-between mb-8 mt-2">
+        <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-2xl font-bold">{bolao.name}</h1>
             <p className="text-sm mt-0.5" style={{ color: "var(--text-secondary)" }}>
@@ -72,17 +99,8 @@ export default async function BolaoPage({
           )}
         </div>
 
-        {/* Links de ação */}
-        <div className="flex gap-3 mb-6">
-          <Link
-            href={`/boloes/${slug}/perfil`}
-            className="text-xs font-medium px-2 py-1 rounded"
-            style={{ backgroundColor: "var(--accent)", color: "#fff" }}
-          >
-            Perfil
-          </Link>
-          {isAdmin && inviteToken && <InviteLink token={inviteToken} />}
-        </div>
+        {/* Link de convite (admin) */}
+        {isAdmin && inviteToken && <InviteLink token={inviteToken} />}
 
         {/* Ranking */}
         <div className="rounded-xl mb-6" style={{ backgroundColor: "var(--bg-surface)", border: "1px solid var(--border)" }}>
