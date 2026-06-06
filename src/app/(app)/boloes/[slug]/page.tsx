@@ -97,10 +97,9 @@ export default async function BolaoPage({
               return (
                 <Link
                   key={member.id}
-                  href={isMe ? `#` : `?userId=${member.userId}`}
-                  onClick={(e) => isMe && e.preventDefault()}
-                  className="flex items-center gap-3 px-4 py-3 transition-colors hover:opacity-75"
-                  style={isMe ? { backgroundColor: "var(--accent-subtle)" } : undefined}
+                  href={isMe ? `.` : `?userId=${member.userId}`}
+                  className="flex items-center gap-3 px-4 py-3 transition-colors"
+                  style={isMe ? { backgroundColor: "var(--accent-subtle)", cursor: "default" } : { cursor: "pointer" }}
                 >
                   <span className="w-6 text-center text-sm">
                     {hasPoints && i < 3 ? medals[i] : <span style={{ color: "var(--text-muted)" }}>{i + 1}</span>}
