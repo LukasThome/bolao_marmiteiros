@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { User } from "lucide-react";
 import HistoricoPontos from "@/features/boloes/components/HistoricoPontos";
+import EditarFotoPerfil from "@/features/boloes/components/EditarFotoPerfil";
 
 export default async function PerfilPage({
   params,
@@ -106,6 +107,9 @@ export default async function PerfilPage({
                   </div>
                 </div>
               </div>
+
+              {/* Editar foto (apenas no próprio perfil) */}
+              {!isViewingOther && <EditarFotoPerfil currentImage={user.image} />}
             </div>
           </div>
         </div>
