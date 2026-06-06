@@ -344,6 +344,7 @@ export default function PalpiteForm({
                             <input
                               type="number"
                               min="0"
+                              step="1"
                               value={score.home}
                               onChange={(e) => {
                                 setScores((s) => ({ ...s, [p.id]: { ...s[p.id], home: e.target.value } }));
@@ -361,6 +362,7 @@ export default function PalpiteForm({
                             <input
                               type="number"
                               min="0"
+                              step="1"
                               value={score.away}
                               onChange={(e) => {
                                 setScores((s) => ({ ...s, [p.id]: { ...s[p.id], away: e.target.value } }));

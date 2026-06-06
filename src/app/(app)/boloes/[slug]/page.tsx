@@ -19,7 +19,7 @@ export default async function BolaoPage({
     where: { slug },
     include: {
       rodadas: {
-        orderBy: { deadline: "desc" },
+        orderBy: { createdAt: "asc" },
         include: { _count: { select: { partidas: true } } },
       },
       members: { orderBy: { totalPts: "desc" } },
