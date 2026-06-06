@@ -72,8 +72,17 @@ export default async function BolaoPage({
           )}
         </div>
 
-        {/* Link de convite (admin) */}
-        {isAdmin && inviteToken && <InviteLink token={inviteToken} />}
+        {/* Links de ação */}
+        <div className="flex gap-3 mb-6">
+          <Link
+            href={`/boloes/${slug}/perfil`}
+            className="text-sm font-medium px-3 py-2 rounded-lg"
+            style={{ backgroundColor: "var(--accent)", color: "#fff" }}
+          >
+            👤 Meu Perfil
+          </Link>
+          {isAdmin && inviteToken && <InviteLink token={inviteToken} />}
+        </div>
 
         {/* Ranking */}
         <div className="rounded-xl mb-6" style={{ backgroundColor: "var(--bg-surface)", border: "1px solid var(--border)" }}>
