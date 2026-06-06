@@ -65,7 +65,9 @@ describe("PalpiteForm", () => {
 
   it("exibe placares reais para partidas finalizadas", () => {
     render(<PalpiteForm partidas={PARTIDAS_FECHADAS} isOpen={false} />);
-    expect(screen.getByText("3 × 1")).toBeDefined();
+    // Layout vertical: placar mandante e visitante em linhas separadas
+    expect(screen.getByText("3")).toBeDefined();
+    expect(screen.getByText("1")).toBeDefined();
   });
 
   it("salva palpite ao clicar em salvar", async () => {
