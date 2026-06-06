@@ -76,10 +76,10 @@ export default async function BolaoPage({
         <div className="flex gap-3 mb-6">
           <Link
             href={`/boloes/${slug}/perfil`}
-            className="text-sm font-medium px-3 py-2 rounded-lg"
+            className="text-xs font-medium px-2 py-1 rounded"
             style={{ backgroundColor: "var(--accent)", color: "#fff" }}
           >
-            👤 Meu Perfil
+            👤 Perfil
           </Link>
           {isAdmin && inviteToken && <InviteLink token={inviteToken} />}
         </div>
