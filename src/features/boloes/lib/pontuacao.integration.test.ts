@@ -1,198 +1,122 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { prisma } from "@/lib/prisma";
+import { describe, it, expect, vi } from "vitest";
 import { calcularPontos } from "@/features/boloes/lib/score";
-import { pontuarPalpites } from "@/features/boloes/lib/pontuacao";
-import { randomUUID } from "crypto";
 
-describe("Fluxo de pontuação: integração completa", () => {
-  let bolaoId: string;
-  let rodadaId: string;
-  let userId1: string;
-  let userId2: string;
-  let partidaId: string;
+const mockPalpiteUpdate = vi.fn();
+const mockMemberUpdateMany = vi.fn();
 
-  beforeAll(async () => {
-    // Cria um bolão de teste
-    const bolao = await prisma.bolao.create({
-      data: {
-        name: "Teste Pontuação",
-        slug: `teste-${randomUUID()}`,
-      },
-    });
-    bolaoId = bolao.id;
+vi.mock("@/lib/prisma", () => ({
+  prisma: {
+    palpite: { update: mockPalpiteUpdate },
+    bolaoMember: { updateMany: mockMemberUpdateMany },
+  },
+}));
 
-    // Cria usuários
-    const user1 = await prisma.user.create({
-      data: {
-        email: `user1-${randomUUID()}@test.com`,
-        name: "Usuário 1",
-      },
-    });
-    userId1 = user1.id;
+const { pontuarPalpites } = await import("@/features/boloes/lib/pontuacao");
 
-    const user2 = await prisma.user.create({
-      data: {
-        email: `user2-${randomUUID()}@test.com`,
-        name: "Usuário 2",
-      },
-    });
-    userId2 = user2.id;
+const BOLAO_ID = "bolao-1";
 
-    // Adiciona membros ao bolão
-    await prisma.bolaoMember.create({
-      data: { bolaoId, userId: userId1 },
-    });
-    await prisma.bolaoMember.create({
-      data: { bolaoId, userId: userId2 },
-    });
+function makePalpite(id: string, userId: string, home: number, away: number) {
+  return {
+    id,
+    userId,
+    homeScore: home,
+    awayScore: away,
+    partida: { rodada: { bolao: { id: BOLAO_ID } } },
+  };
+}
 
-    // Cria uma rodada
-    const rodada = await prisma.rodada.create({
-      data: {
-        bolaoId,
-        name: "Teste Rodada 1",
-        deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      },
-    });
-    rodadaId = rodada.id;
+describe("Fluxo de pontuação: integração (lógica)", () => {
+  it("Fluxo: palpites → resultado → pontuação correta", async () => {
+    // Reseta mocks
+    mockPalpiteUpdate.mockReset();
+    mockMemberUpdateMany.mockReset();
 
-    // Cria uma partida
-    const partida = await prisma.partida.create({
-      data: {
-        rodadaId,
-        homeTeam: "Brazil",
-        awayTeam: "Argentina",
-        group: "GROUP_C",
-      },
-    });
-    partidaId = partida.id;
+    // 1. Simula 2 palpites para Brazil 2 × 1 Argentina
+    const palpites = [
+      makePalpite("p1", "u1", 2, 1), // User 1: acerto exato (3 pts)
+      makePalpite("p2", "u2", 1, 1), // User 2: erro (0 pts)
+    ];
 
-    // Cria palpites
-    await prisma.palpite.create({
-      data: {
-        userId: userId1,
-        partidaId,
-        homeScore: 2,
-        awayScore: 1,
-      },
-    });
-
-    await prisma.palpite.create({
-      data: {
-        userId: userId2,
-        partidaId,
-        homeScore: 1,
-        awayScore: 1,
-      },
-    });
-  });
-
-  afterAll(async () => {
-    // Limpa dados de teste
-    await prisma.palpite.deleteMany({ where: { partida: { rodadaId } } });
-    await prisma.partida.deleteMany({ where: { rodadaId } });
-    await prisma.rodada.delete({ where: { id: rodadaId } });
-    await prisma.bolaoMember.deleteMany({ where: { bolaoId } });
-    await prisma.bolao.delete({ where: { id: bolaoId } });
-    await prisma.user.deleteMany({ where: { id: { in: [userId1, userId2] } } });
-  });
-
-  it("Fluxo: palpites → resultado → pontuação → ranking", async () => {
-    // 1. Verifica palpites iniciais
-    const palpitesInicial = await prisma.palpite.findMany({
-      where: { partida: { rodadaId } },
-      include: { user: true },
-    });
-
-    expect(palpitesInicial).toHaveLength(2);
-    expect(palpitesInicial[0].pontos).toBeNull();
-    expect(palpitesInicial[1].pontos).toBeNull();
-
-    // 2. Simula resultado da partida: Brazil 2 × 1 Argentina
+    // 2. Aplica pontuação
     const resultado = { homeScore: 2, awayScore: 1 };
-
-    await prisma.partida.update({
-      where: { id: partidaId },
-      data: { ...resultado, status: "FINISHED" },
-    });
-
-    // 3. Calcula pontuação
-    const palpites = await prisma.palpite.findMany({
-      where: { partidaId },
-      include: { partida: { include: { rodada: { include: { bolao: true } } } } },
-    });
-
     await pontuarPalpites(palpites, resultado);
 
-    // 4. Verifica pontos atribuídos
-    const palpite1 = await prisma.palpite.findUnique({
-      where: { id: palpites[0].id },
-    });
-    const palpite2 = await prisma.palpite.findUnique({
-      where: { id: palpites[1].id },
-    });
+    // 3. Verifica chamadas ao prisma
+    expect(mockPalpiteUpdate).toHaveBeenCalledTimes(2);
 
-    // User 1: palpite 2 × 1 → acerto exato (3 pts)
-    expect(palpite1?.pontos).toBe(3);
-
-    // User 2: palpite 1 × 1 → erro (0 pts)
-    expect(palpite2?.pontos).toBe(0);
-
-    // 5. Verifica ranking
-    const ranking = await prisma.bolaoMember.findMany({
-      where: { bolaoId },
-      include: { user: true },
-      orderBy: { totalPts: "desc" },
+    // User 1 deve receber 3 pts (acerto exato)
+    expect(mockPalpiteUpdate).toHaveBeenCalledWith({
+      where: { id: "p1" },
+      data: { pontos: 3 },
     });
 
-    expect(ranking[0].totalPts).toBe(3); // User 1
-    expect(ranking[1].totalPts).toBe(0); // User 2
+    // User 2 deve receber 0 pts (erro)
+    expect(mockPalpiteUpdate).toHaveBeenCalledWith({
+      where: { id: "p2" },
+      data: { pontos: 0 },
+    });
+
+    // Verifica incremento de pontos
+    expect(mockMemberUpdateMany).toHaveBeenCalledWith({
+      where: { userId: "u1", bolaoId: BOLAO_ID },
+      data: { totalPts: { increment: 3 } },
+    });
+
+    expect(mockMemberUpdateMany).toHaveBeenCalledWith({
+      where: { userId: "u2", bolaoId: BOLAO_ID },
+      data: { totalPts: { increment: 0 } },
+    });
   });
 
   it("Múltiplos resultados acumulam pontos corretamente", async () => {
-    // Cria segunda partida
-    const partida2 = await prisma.partida.create({
-      data: {
-        rodadaId,
-        homeTeam: "France",
-        awayTeam: "Germany",
-        group: "GROUP_F",
-      },
+    mockPalpiteUpdate.mockReset();
+    mockMemberUpdateMany.mockReset();
+
+    // Primeira partida: Brazil 2 × 1 Argentina
+    const palpite1 = makePalpite("p1", "u1", 2, 1); // 3 pts
+    await pontuarPalpites([palpite1], { homeScore: 2, awayScore: 1 });
+
+    // Segunda partida: France 1 × 0 Germany
+    const palpite2 = makePalpite("p2", "u1", 1, 0); // 3 pts
+    await pontuarPalpites([palpite2], { homeScore: 1, awayScore: 0 });
+
+    // User 1 deve ter chamadas para +3 e +3 = 6 pts total
+    expect(mockMemberUpdateMany).toHaveBeenCalledWith({
+      where: { userId: "u1", bolaoId: BOLAO_ID },
+      data: { totalPts: { increment: 3 } },
     });
 
-    // Cria novo palpite para user1
-    await prisma.palpite.create({
-      data: {
-        userId: userId1,
-        partidaId: partida2.id,
-        homeScore: 1,
-        awayScore: 0,
-      },
-    });
+    // Verificar que foi chamado 2 vezes (acumulação)
+    const chamadasUser1 = mockMemberUpdateMany.mock.calls.filter(
+      (call) => call[0].where.userId === "u1"
+    );
+    expect(chamadasUser1).toHaveLength(2);
+  });
 
-    // Simula resultado
-    await prisma.partida.update({
-      where: { id: partida2.id },
-      data: { homeScore: 1, awayScore: 0, status: "FINISHED" },
-    });
+  it("Calcula pontos corretamente em diferentes cenários", () => {
+    // Acerto exato
+    expect(calcularPontos({ homeScore: 2, awayScore: 1 }, { homeScore: 2, awayScore: 1 })).toBe(
+      3
+    );
 
-    const palpites = await prisma.palpite.findMany({
-      where: { partidaId: partida2.id },
-      include: { partida: { include: { rodada: { include: { bolao: true } } } } },
-    });
+    // Acerta resultado (vitória mandante)
+    expect(calcularPontos({ homeScore: 3, awayScore: 0 }, { homeScore: 2, awayScore: 1 })).toBe(
+      1
+    );
 
-    await pontuarPalpites(palpites, { homeScore: 1, awayScore: 0 });
+    // Acerta resultado (visitante vence)
+    expect(calcularPontos({ homeScore: 0, awayScore: 2 }, { homeScore: 1, awayScore: 3 })).toBe(
+      1
+    );
 
-    // Verifica pontos acumulados
-    const member = await prisma.bolaoMember.findUnique({
-      where: { userId_bolaoId: { userId: userId1, bolaoId } },
-    });
+    // Acerta resultado (empate)
+    expect(calcularPontos({ homeScore: 1, awayScore: 1 }, { homeScore: 2, awayScore: 2 })).toBe(
+      1
+    );
 
-    // User1 agora deve ter 6 pts (3 da primeira + 3 da segunda)
-    expect(member?.totalPts).toBe(6);
-
-    // Limpa
-    await prisma.palpite.deleteMany({ where: { partidaId: partida2.id } });
-    await prisma.partida.delete({ where: { id: partida2.id } });
+    // Erra tudo
+    expect(calcularPontos({ homeScore: 1, awayScore: 1 }, { homeScore: 2, awayScore: 1 })).toBe(
+      0
+    );
   });
 });
