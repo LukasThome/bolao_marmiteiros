@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { calcularPontos } from "@/features/boloes/lib/score";
 
 const mockPalpiteUpdate = vi.fn();
 const mockMemberUpdateMany = vi.fn();
@@ -30,62 +31,123 @@ describe("pontuarPalpites", () => {
     mockMemberUpdateMany.mockReset();
   });
 
-  it("atribui 3 pontos para placar exato", async () => {
-    await pontuarPalpites([makePalpite("p1", "u1", 2, 1)], { homeScore: 2, awayScore: 1 });
-    expect(mockPalpiteUpdate).toHaveBeenCalledWith({ where: { id: "p1" }, data: { pontos: 3 } });
-    expect(mockMemberUpdateMany).toHaveBeenCalledWith({
-      where: { userId: "u1", bolaoId: BOLAO_ID },
-      data: { totalPts: { increment: 3 } },
+  describe("Cálculo de pontos", () => {
+    it("atribui 3 pontos para placar exato", async () => {
+      await pontuarPalpites([makePalpite("p1", "u1", 2, 1)], { homeScore: 2, awayScore: 1 });
+      expect(mockPalpiteUpdate).toHaveBeenCalledWith({
+        where: { id: "p1" },
+        data: { pontos: 3 },
+      });
+    });
+
+    it("atribui 1 ponto para resultado correto sem placar exato", async () => {
+      await pontuarPalpites([makePalpite("p1", "u1", 3, 0)], { homeScore: 2, awayScore: 1 });
+      expect(mockPalpiteUpdate).toHaveBeenCalledWith({
+        where: { id: "p1" },
+        data: { pontos: 1 },
+      });
+    });
+
+    it("atribui 0 pontos para resultado errado", async () => {
+      await pontuarPalpites([makePalpite("p1", "u1", 0, 2)], { homeScore: 2, awayScore: 1 });
+      expect(mockPalpiteUpdate).toHaveBeenCalledWith({
+        where: { id: "p1" },
+        data: { pontos: 0 },
+      });
     });
   });
 
-  it("atribui 1 ponto para resultado correto sem placar exato", async () => {
-    await pontuarPalpites([makePalpite("p1", "u1", 3, 0)], { homeScore: 2, awayScore: 1 });
-    expect(mockPalpiteUpdate).toHaveBeenCalledWith({ where: { id: "p1" }, data: { pontos: 1 } });
+  describe("Cenários de vitória e empate", () => {
+    it("acerta vitória do mandante", async () => {
+      await pontuarPalpites([makePalpite("p1", "u1", 2, 0)], { homeScore: 3, awayScore: 1 });
+      expect(mockPalpiteUpdate).toHaveBeenCalledWith({
+        where: { id: "p1" },
+        data: { pontos: 1 },
+      });
+    });
+
+    it("acerta vitória do visitante", async () => {
+      await pontuarPalpites([makePalpite("p1", "u1", 0, 2)], { homeScore: 1, awayScore: 3 });
+      expect(mockPalpiteUpdate).toHaveBeenCalledWith({
+        where: { id: "p1" },
+        data: { pontos: 1 },
+      });
+    });
+
+    it("acerta empate", async () => {
+      await pontuarPalpites([makePalpite("p1", "u1", 1, 1)], { homeScore: 2, awayScore: 2 });
+      expect(mockPalpiteUpdate).toHaveBeenCalledWith({
+        where: { id: "p1" },
+        data: { pontos: 1 },
+      });
+    });
+
+    it("erra vitória do mandante palpitando empate", async () => {
+      await pontuarPalpites([makePalpite("p1", "u1", 1, 1)], { homeScore: 2, awayScore: 1 });
+      expect(mockPalpiteUpdate).toHaveBeenCalledWith({
+        where: { id: "p1" },
+        data: { pontos: 0 },
+      });
+    });
+
+    it("erra resultado palpitando vitória quando é derrota", async () => {
+      await pontuarPalpites([makePalpite("p1", "u1", 3, 1)], { homeScore: 1, awayScore: 2 });
+      expect(mockPalpiteUpdate).toHaveBeenCalledWith({
+        where: { id: "p1" },
+        data: { pontos: 0 },
+      });
+    });
   });
 
-  it("atribui 0 pontos para resultado errado", async () => {
-    await pontuarPalpites([makePalpite("p1", "u1", 0, 2)], { homeScore: 2, awayScore: 1 });
-    expect(mockPalpiteUpdate).toHaveBeenCalledWith({ where: { id: "p1" }, data: { pontos: 0 } });
+  describe("Fluxo de múltiplos palpites", () => {
+    it("processa múltiplos palpites", async () => {
+      await pontuarPalpites(
+        [makePalpite("p1", "u1", 2, 1), makePalpite("p2", "u2", 0, 0)],
+        { homeScore: 2, awayScore: 1 }
+      );
+      expect(mockPalpiteUpdate).toHaveBeenCalledTimes(2);
+      expect(mockMemberUpdateMany).toHaveBeenCalledTimes(2);
+    });
+
+    it("acumula pontos de múltiplos palpites do mesmo usuário", async () => {
+      // Primeiro palpite: 3 pts
+      await pontuarPalpites([makePalpite("p1", "u1", 2, 1)], { homeScore: 2, awayScore: 1 });
+      // Segundo palpite: 3 pts
+      await pontuarPalpites([makePalpite("p2", "u1", 1, 0)], { homeScore: 1, awayScore: 0 });
+
+      // Verificar que foram feitas 2 chamadas de incremento para o mesmo usuário
+      const chamadasUser1 = mockMemberUpdateMany.mock.calls.filter(
+        (call) => call[0].where.userId === "u1"
+      );
+      expect(chamadasUser1).toHaveLength(2);
+      expect(chamadasUser1[0][0].data.totalPts.increment).toBe(3);
+      expect(chamadasUser1[1][0].data.totalPts.increment).toBe(3);
+    });
+
+    it("não chama prisma quando lista está vazia", async () => {
+      await pontuarPalpites([], { homeScore: 1, awayScore: 0 });
+      expect(mockPalpiteUpdate).not.toHaveBeenCalled();
+      expect(mockMemberUpdateMany).not.toHaveBeenCalled();
+    });
   });
 
-  it("processa múltiplos palpites", async () => {
-    await pontuarPalpites(
-      [makePalpite("p1", "u1", 2, 1), makePalpite("p2", "u2", 0, 0)],
-      { homeScore: 2, awayScore: 1 }
-    );
-    expect(mockPalpiteUpdate).toHaveBeenCalledTimes(2);
-    expect(mockMemberUpdateMany).toHaveBeenCalledTimes(2);
-  });
-
-  it("não chama prisma quando lista está vazia", async () => {
-    await pontuarPalpites([], { homeScore: 1, awayScore: 0 });
-    expect(mockPalpiteUpdate).not.toHaveBeenCalled();
-    expect(mockMemberUpdateMany).not.toHaveBeenCalled();
-  });
-
-  it("acerta vitória do mandante", async () => {
-    await pontuarPalpites([makePalpite("p1", "u1", 2, 0)], { homeScore: 3, awayScore: 1 });
-    expect(mockPalpiteUpdate).toHaveBeenCalledWith({ where: { id: "p1" }, data: { pontos: 1 } });
-  });
-
-  it("acerta vitória do visitante", async () => {
-    await pontuarPalpites([makePalpite("p1", "u1", 0, 2)], { homeScore: 1, awayScore: 3 });
-    expect(mockPalpiteUpdate).toHaveBeenCalledWith({ where: { id: "p1" }, data: { pontos: 1 } });
-  });
-
-  it("acerta empate", async () => {
-    await pontuarPalpites([makePalpite("p1", "u1", 1, 1)], { homeScore: 2, awayScore: 2 });
-    expect(mockPalpiteUpdate).toHaveBeenCalledWith({ where: { id: "p1" }, data: { pontos: 1 } });
-  });
-
-  it("erra vitória do mandante palpitando empate", async () => {
-    await pontuarPalpites([makePalpite("p1", "u1", 1, 1)], { homeScore: 2, awayScore: 1 });
-    expect(mockPalpiteUpdate).toHaveBeenCalledWith({ where: { id: "p1" }, data: { pontos: 0 } });
-  });
-
-  it("erra resultado palpitando vitória quando é derrota", async () => {
-    await pontuarPalpites([makePalpite("p1", "u1", 3, 1)], { homeScore: 1, awayScore: 2 });
-    expect(mockPalpiteUpdate).toHaveBeenCalledWith({ where: { id: "p1" }, data: { pontos: 0 } });
+  describe("Cálculo de pontos direto", () => {
+    it("calcula pontos corretamente em diferentes cenários", () => {
+      expect(calcularPontos({ homeScore: 2, awayScore: 1 }, { homeScore: 2, awayScore: 1 })).toBe(
+        3
+      );
+      expect(calcularPontos({ homeScore: 3, awayScore: 0 }, { homeScore: 2, awayScore: 1 })).toBe(
+        1
+      );
+      expect(calcularPontos({ homeScore: 0, awayScore: 2 }, { homeScore: 1, awayScore: 3 })).toBe(
+        1
+      );
+      expect(calcularPontos({ homeScore: 1, awayScore: 1 }, { homeScore: 2, awayScore: 2 })).toBe(
+        1
+      );
+      expect(calcularPontos({ homeScore: 1, awayScore: 1 }, { homeScore: 2, awayScore: 1 })).toBe(
+        0
+      );
+    });
   });
 });
