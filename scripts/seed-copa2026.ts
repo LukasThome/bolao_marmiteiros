@@ -129,15 +129,19 @@ async function main() {
             rodadaId: rodada.id,
             homeTeam: match.homeTeam.name,
             awayTeam: match.awayTeam.name,
+            group: match.group,
             scheduledAt: new Date(match.utcDate),
           },
         });
         novas++;
-      } else if (!exists.scheduledAt) {
-        // Retroativamente preenche scheduledAt em partidas antigas
+      } else if (!exists.scheduledAt || !exists.group) {
+        // Retroativamente preenche scheduledAt e group em partidas antigas
         await prisma.partida.update({
           where: { id: exists.id },
-          data: { scheduledAt: new Date(match.utcDate) },
+          data: {
+            scheduledAt: new Date(match.utcDate),
+            group: match.group,
+          },
         });
       }
     }
