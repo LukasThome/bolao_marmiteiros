@@ -46,6 +46,9 @@ yarn-error.log*
 # TypeScript
 tsconfig.tsbuildinfo
 
+# Claude Code (config local)
+.claude/
+
 # Playwright MCP
 .playwright-mcp/
 

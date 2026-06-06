@@ -27,6 +27,9 @@ export default defineConfig({
         "src/features/boloes/components/Countdown.tsx",
         "src/components/BetaBanner.tsx",
         "src/components/ToastProvider.tsx",
+        // Componentes UI client (fetch + render): histórico e edição de foto
+        "src/features/boloes/components/HistoricoPontos.tsx",
+        "src/features/boloes/components/EditarFotoPerfil.tsx",
       ],
       thresholds: {
         lines: 80,  

@@ -46,7 +46,11 @@ export default async function BolaoPage({
 
   const now = new Date();
   const hasPoints = members.some((m) => m.totalPts > 0);
-  const currentUser = session?.user;
+  // Usa os dados do banco (userMap) para refletir a foto atualizada,
+  // já que a imagem na sessão (JWT) pode estar desatualizada.
+  const currentUser = session?.user
+    ? { ...session.user, image: userMap[session.user.id]?.image ?? session.user.image }
+    : null;
 
   return (
     <main className="min-h-screen p-6 md:p-8" style={{ backgroundColor: "var(--bg-base)", color: "var(--text-primary)" }}>
@@ -122,6 +126,25 @@ export default async function BolaoPage({
                   <span className="w-6 text-center text-sm">
                     {hasPoints && i < 3 ? medals[i] : <span style={{ color: "var(--text-muted)" }}>{i + 1}</span>}
                   </span>
+                  <div
+                    className="shrink-0 rounded-full overflow-hidden"
+                    style={{ width: "28px", height: "28px" }}
+                  >
+                    {member.user?.image ? (
+                      <img
+                        src={member.user.image}
+                        alt={member.user.name || "Jogador"}
+                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      />
+                    ) : (
+                      <div
+                        className="w-full h-full flex items-center justify-center"
+                        style={{ backgroundColor: "var(--bg-raised)" }}
+                      >
+                        <User size={14} style={{ color: "var(--text-muted)" }} />
+                      </div>
+                    )}
+                  </div>
                   <span className="flex-1 text-sm font-medium truncate">
                     {member.user?.name ?? "—"}
                     {isMe && (
