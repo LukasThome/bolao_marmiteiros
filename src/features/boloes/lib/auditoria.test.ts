@@ -4,6 +4,7 @@ const mockAuditoriaCreate = vi.fn();
 const mockAuditoriafindMany = vi.fn();
 const mockAuditoriaCount = vi.fn();
 const mockBolaoMemberFindUnique = vi.fn();
+const mockBolaoMemberFindMany = vi.fn();
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -14,13 +15,13 @@ vi.mock("@/lib/prisma", () => ({
     },
     bolaoMember: {
       findUnique: mockBolaoMemberFindUnique,
+      findMany: mockBolaoMemberFindMany,
     },
   },
 }));
 
-const { registrarAuditoria, obterHistoricoPontos } = await import(
-  "@/features/boloes/lib/auditoria"
-);
+const { registrarAuditoria, obterHistoricoPontos, obterHistoricoCompleto, verificarSaldoBolao } =
+  await import("@/features/boloes/lib/auditoria");
 
 describe("Auditoria de Pontos", () => {
   beforeEach(() => {
@@ -159,6 +160,93 @@ describe("Auditoria de Pontos", () => {
           skip: 25,
         })
       );
+    });
+  });
+
+  describe("obterHistoricoCompleto", () => {
+    it("retorna histórico completo do bolão com usuários", async () => {
+      const registros = [
+        { id: "1", userId: "u1", pontos: 3, user: { name: "Lucas" } },
+        { id: "2", userId: "u2", pontos: 1, user: { name: "Fábio" } },
+      ];
+      mockAuditoriafindMany.mockResolvedValue(registros);
+
+      const resultado = await obterHistoricoCompleto("bolao-1");
+
+      expect(resultado).toEqual(registros);
+      expect(mockAuditoriafindMany).toHaveBeenCalledWith({
+        where: { bolaoId: "bolao-1" },
+        include: { user: true },
+        orderBy: [{ createdAt: "desc" }],
+      });
+    });
+  });
+
+  describe("verificarSaldoBolao", () => {
+    it("detecta quando o saldo de todos os membros está correto", async () => {
+      mockBolaoMemberFindMany.mockResolvedValue([
+        { userId: "u1", totalPts: 4, user: { name: "Lucas" } },
+        { userId: "u2", totalPts: 1, user: { name: "Fábio" } },
+      ]);
+      // u1: 3 + 1 = 4 (bate); u2: 1 (bate)
+      mockAuditoriafindMany
+        .mockResolvedValueOnce([{ pontos: 3 }, { pontos: 1 }])
+        .mockResolvedValueOnce([{ pontos: 1 }]);
+      mockAuditoriaCount.mockResolvedValue(2);
+
+      const resultado = await verificarSaldoBolao("bolao-1");
+
+      expect(resultado).toEqual([
+        {
+          userId: "u1",
+          nomeUsuario: "Lucas",
+          saldoAtual: 4,
+          saldoEsperado: 4,
+          diferenca: 0,
+          estaCorreto: true,
+        },
+        {
+          userId: "u2",
+          nomeUsuario: "Fábio",
+          saldoAtual: 1,
+          saldoEsperado: 1,
+          diferenca: 0,
+          estaCorreto: true,
+        },
+      ]);
+    });
+
+    it("detecta divergência quando o saldo não fecha", async () => {
+      mockBolaoMemberFindMany.mockResolvedValue([
+        { userId: "u1", totalPts: 10, user: { name: "Lucas" } },
+      ]);
+      // histórico soma 7, mas totalPts é 10 → diferença de 3
+      mockAuditoriafindMany.mockResolvedValueOnce([{ pontos: 4 }, { pontos: 3 }]);
+      mockAuditoriaCount.mockResolvedValue(2);
+
+      const resultado = await verificarSaldoBolao("bolao-1");
+
+      expect(resultado[0]).toEqual({
+        userId: "u1",
+        nomeUsuario: "Lucas",
+        saldoAtual: 10,
+        saldoEsperado: 7,
+        diferenca: 3,
+        estaCorreto: false,
+      });
+    });
+
+    it("usa 'Anônimo' quando o membro não tem nome", async () => {
+      mockBolaoMemberFindMany.mockResolvedValue([
+        { userId: "u1", totalPts: 0, user: { name: null } },
+      ]);
+      mockAuditoriafindMany.mockResolvedValueOnce([]);
+      mockAuditoriaCount.mockResolvedValue(0);
+
+      const resultado = await verificarSaldoBolao("bolao-1");
+
+      expect(resultado[0].nomeUsuario).toBe("Anônimo");
+      expect(resultado[0].estaCorreto).toBe(true);
     });
   });
 });
