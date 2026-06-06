@@ -95,7 +95,7 @@ export default async function RodadaPalpitePage({
   }
 
   return (
-    <main className="min-h-screen p-6 md:p-8" style={{ backgroundColor: "var(--bg-base)", color: "var(--text-primary)" }}>
+    <main className="min-h-screen p-4 md:p-8" style={{ backgroundColor: "var(--bg-base)", color: "var(--text-primary)" }}>
       <div className="max-w-2xl mx-auto">
         <Link href={`/boloes/${slug}`} className="text-sm mb-1 inline-block" style={{ color: "var(--text-secondary)" }}>
           ← Voltar

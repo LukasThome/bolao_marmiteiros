@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { randomUUID } from "crypto";
 import Link from "next/link";
-import { ChevronRight, Clock, Trophy, User } from "lucide-react";
+import { ChevronRight, Clock, Trophy, User, ListChecks } from "lucide-react";
 import InviteLink from "@/features/boloes/components/InviteLink";
 
 export default async function BolaoPage({
@@ -139,6 +139,19 @@ export default async function BolaoPage({
             })}
           </div>
         </div>
+
+        {/* Link para Resultados */}
+        <Link
+          href={`/boloes/${slug}/resultados`}
+          className="rounded-xl p-4 flex items-center justify-between gap-4 mb-6 transition-opacity hover:opacity-75"
+          style={{ backgroundColor: "var(--bg-surface)", border: "1px solid var(--border)" }}
+        >
+          <div className="flex items-center gap-2">
+            <ListChecks size={16} style={{ color: "var(--accent)" }} />
+            <span className="font-semibold text-sm">Resultados das partidas</span>
+          </div>
+          <ChevronRight size={16} style={{ color: "var(--text-muted)" }} />
+        </Link>
 
         {/* Rodadas */}
         {bolao.rodadas.length === 0 ? (

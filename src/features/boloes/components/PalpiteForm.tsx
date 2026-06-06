@@ -313,7 +313,7 @@ export default function PalpiteForm({
                       style={!isFirst ? { borderTop: "1px solid var(--border)" } : undefined}
                     >
                       <div
-                        className="flex items-center gap-2 px-4 py-3"
+                        className="flex flex-col px-4 py-3"
                         style={
                           dirty && isOpen
                             ? { borderLeft: "3px solid var(--gold)", paddingLeft: "13px" }
@@ -322,27 +322,18 @@ export default function PalpiteForm({
                             : undefined
                         }
                       >
-                        {/* Time mandante */}
-                        <div className="flex-1 flex flex-col items-end gap-0.5 min-w-0">
-                          <span
-                            className="text-sm font-medium text-right truncate flex items-center justify-end gap-1.5 w-full"
-                            title={p.homeTeam}
-                          >
-                            {p.homeTeam}
+                        {/* Linha do time mandante */}
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 flex items-center gap-2 min-w-0">
                             <TeamFlag name={p.homeTeam} />
-                          </span>
-                          {hora && (
-                            <span className="text-xs tabular-nums" style={{ color: "var(--text-muted)" }}>
-                              {hora}
+                            <span className="text-sm font-medium truncate" title={p.homeTeam}>
+                              {p.homeTeam}
                             </span>
-                          )}
-                        </div>
-
-                        {/* Área central */}
-                        {isOpen ? (
-                          <div className="shrink-0 flex items-center gap-1.5">
+                          </div>
+                          {isOpen ? (
                             <input
                               type="number"
+                              inputMode="numeric"
                               min="0"
                               step="1"
                               value={score.home}
@@ -351,16 +342,35 @@ export default function PalpiteForm({
                                 setStates((s) => ({ ...s, [p.id]: "idle" }));
                               }}
                               placeholder="—"
-                              className="w-11 text-center rounded-lg px-1 py-1.5 text-sm outline-none tabular-nums"
+                              className="shrink-0 w-11 text-center rounded-lg px-1 py-1.5 text-sm outline-none tabular-nums"
                               style={{
                                 backgroundColor: "var(--bg-raised)",
                                 border: dirty ? "1px solid var(--gold)" : "1px solid var(--border)",
                                 color: "var(--text-primary)",
                               }}
                             />
-                            <span className="text-xs" style={{ color: "var(--text-muted)" }}>×</span>
+                          ) : (
+                            <span
+                              className="shrink-0 w-8 text-center text-base font-bold tabular-nums"
+                              style={{ color: finished ? "var(--accent)" : "var(--text-muted)" }}
+                            >
+                              {finished ? p.homeScore : "—"}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Linha do time visitante */}
+                        <div className="flex items-center gap-2 mt-2">
+                          <div className="flex-1 flex items-center gap-2 min-w-0">
+                            <TeamFlag name={p.awayTeam} />
+                            <span className="text-sm font-medium truncate" title={p.awayTeam}>
+                              {p.awayTeam}
+                            </span>
+                          </div>
+                          {isOpen ? (
                             <input
                               type="number"
+                              inputMode="numeric"
                               min="0"
                               step="1"
                               value={score.away}
@@ -369,48 +379,43 @@ export default function PalpiteForm({
                                 setStates((s) => ({ ...s, [p.id]: "idle" }));
                               }}
                               placeholder="—"
-                              className="w-11 text-center rounded-lg px-1 py-1.5 text-sm outline-none tabular-nums"
+                              className="shrink-0 w-11 text-center rounded-lg px-1 py-1.5 text-sm outline-none tabular-nums"
                               style={{
                                 backgroundColor: "var(--bg-raised)",
                                 border: dirty ? "1px solid var(--gold)" : "1px solid var(--border)",
                                 color: "var(--text-primary)",
                               }}
                             />
-                          </div>
-                        ) : finished ? (
+                          ) : (
+                            <span
+                              className="shrink-0 w-8 text-center text-base font-bold tabular-nums"
+                              style={{ color: finished ? "var(--accent)" : "var(--text-muted)" }}
+                            >
+                              {finished ? p.awayScore : "—"}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Hora da partida */}
+                        {hora && (
                           <span
-                            className="shrink-0 text-base font-bold tabular-nums px-2"
-                            style={{ color: "var(--accent)" }}
+                            className="text-xs tabular-nums mt-2"
+                            style={{ color: "var(--text-muted)" }}
                           >
-                            {p.homeScore} × {p.awayScore}
-                          </span>
-                        ) : (
-                          <span className="shrink-0 text-xs px-3" style={{ color: "var(--text-muted)" }}>
-                            vs
+                            {hora}
                           </span>
                         )}
 
-                        {/* Time visitante */}
-                        <div className="flex-1 flex flex-col gap-0.5 min-w-0">
-                          <span
-                            className="text-sm font-medium truncate flex items-center gap-1.5"
-                            title={p.awayTeam}
-                          >
-                            <TeamFlag name={p.awayTeam} />
-                            {p.awayTeam}
-                          </span>
-                        </div>
-
-                        {/* Botão de ação (só aberto) */}
+                        {/* Botão de ação na parte inferior (só aberto) */}
                         {isOpen && (
-                          <div className="shrink-0 flex items-center gap-1.5">
+                          <div className="flex items-center justify-center gap-2 mt-3">
                             {state === "error" && (
                               <span className="text-xs" style={{ color: "var(--danger)" }}>!</span>
                             )}
                             <button
                               onClick={() => savePalpite(p.id)}
                               disabled={state === "saving"}
-                              className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg font-medium transition-all min-w-[70px] justify-center"
+                              className="w-1/2 flex items-center gap-1 text-xs px-2.5 py-2 rounded-lg font-medium transition-all justify-center"
                               style={{
                                 backgroundColor:
                                   state === "saved"
