@@ -63,4 +63,29 @@ describe("pontuarPalpites", () => {
     expect(mockPalpiteUpdate).not.toHaveBeenCalled();
     expect(mockMemberUpdateMany).not.toHaveBeenCalled();
   });
+
+  it("acerta vitória do mandante", async () => {
+    await pontuarPalpites([makePalpite("p1", "u1", 2, 0)], { homeScore: 3, awayScore: 1 });
+    expect(mockPalpiteUpdate).toHaveBeenCalledWith({ where: { id: "p1" }, data: { pontos: 1 } });
+  });
+
+  it("acerta vitória do visitante", async () => {
+    await pontuarPalpites([makePalpite("p1", "u1", 0, 2)], { homeScore: 1, awayScore: 3 });
+    expect(mockPalpiteUpdate).toHaveBeenCalledWith({ where: { id: "p1" }, data: { pontos: 1 } });
+  });
+
+  it("acerta empate", async () => {
+    await pontuarPalpites([makePalpite("p1", "u1", 1, 1)], { homeScore: 2, awayScore: 2 });
+    expect(mockPalpiteUpdate).toHaveBeenCalledWith({ where: { id: "p1" }, data: { pontos: 1 } });
+  });
+
+  it("erra vitória do mandante palpitando empate", async () => {
+    await pontuarPalpites([makePalpite("p1", "u1", 1, 1)], { homeScore: 2, awayScore: 1 });
+    expect(mockPalpiteUpdate).toHaveBeenCalledWith({ where: { id: "p1" }, data: { pontos: 0 } });
+  });
+
+  it("erra resultado palpitando vitória quando é derrota", async () => {
+    await pontuarPalpites([makePalpite("p1", "u1", 3, 1)], { homeScore: 1, awayScore: 2 });
+    expect(mockPalpiteUpdate).toHaveBeenCalledWith({ where: { id: "p1" }, data: { pontos: 0 } });
+  });
 });
