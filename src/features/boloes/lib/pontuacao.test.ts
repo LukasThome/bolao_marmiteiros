@@ -3,11 +3,14 @@ import { calcularPontos } from "@/features/boloes/lib/score";
 
 const mockPalpiteUpdate = vi.fn();
 const mockMemberUpdateMany = vi.fn();
+const mockMemberFindUnique = vi.fn();
+const mockAuditoriaCreate = vi.fn();
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     palpite: { update: mockPalpiteUpdate },
-    bolaoMember: { updateMany: mockMemberUpdateMany },
+    bolaoMember: { updateMany: mockMemberUpdateMany, findUnique: mockMemberFindUnique },
+    auditoriaPontos: { create: mockAuditoriaCreate },
   },
 }));
 
@@ -29,6 +32,11 @@ describe("pontuarPalpites", () => {
   beforeEach(() => {
     mockPalpiteUpdate.mockReset();
     mockMemberUpdateMany.mockReset();
+    mockMemberFindUnique.mockReset();
+    mockAuditoriaCreate.mockReset();
+    // Configurar retorno padrão para o mock de findUnique
+    mockMemberFindUnique.mockResolvedValue({ totalPts: 0 });
+    mockAuditoriaCreate.mockResolvedValue({ id: "audit-1" });
   });
 
   describe("Cálculo de pontos", () => {

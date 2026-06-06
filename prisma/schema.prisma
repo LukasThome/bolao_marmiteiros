@@ -32,6 +32,7 @@ model User {
   sessions            Session[]
   memberships         BolaoMember[]
   palpites            Palpite[]
+  auditorias          AuditoriaPontos[]
   passwordResetTokens PasswordResetToken[]
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
@@ -89,6 +90,7 @@ model Bolao {
   inviteToken String?       @unique
   members     BolaoMember[]
   rodadas     Rodada[]
+  auditorias  AuditoriaPontos[]
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 }
@@ -144,4 +146,20 @@ model Palpite {
   updatedAt DateTime @updatedAt
 
   @@unique([userId, partidaId])
+}
+
+model AuditoriaPontos {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  bolaoId   String   @db.ObjectId
+  tipo      String   @default("PALPITE_ACERTADO") // PALPITE_ACERTADO, AJUSTE_MANUAL, REVERSAO
+  pontos    Int
+  saldoAntes Int
+  saldoDepois Int
+  descricao String?
+  palpiteId String?  @db.ObjectId
+  partidaId String?  @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id])
+  bolao     Bolao    @relation(fields: [bolaoId], references: [id])
+  createdAt DateTime @default(now())
 }
