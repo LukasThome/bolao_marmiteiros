@@ -95,9 +95,11 @@ export default async function BolaoPage({
               const isMe = member.userId === session?.user?.id;
               const medals = ["🥇", "🥈", "🥉"];
               return (
-                <div
+                <Link
                   key={member.id}
-                  className="flex items-center gap-3 px-4 py-3"
+                  href={isMe ? `#` : `?userId=${member.userId}`}
+                  onClick={(e) => isMe && e.preventDefault()}
+                  className="flex items-center gap-3 px-4 py-3 transition-colors hover:opacity-75"
                   style={isMe ? { backgroundColor: "var(--accent-subtle)" } : undefined}
                 >
                   <span className="w-6 text-center text-sm">
@@ -115,7 +117,7 @@ export default async function BolaoPage({
                   >
                     {member.totalPts} pts
                   </span>
-                </div>
+                </Link>
               );
             })}
           </div>

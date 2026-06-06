@@ -7,10 +7,13 @@ import HistoricoPontos from "@/features/boloes/components/HistoricoPontos";
 
 export default async function PerfilPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ userId?: string }>;
 }) {
   const { slug } = await params;
+  const { userId: queryUserId } = await searchParams;
   const session = await auth();
 
   if (!session?.user?.id) {
@@ -21,23 +24,43 @@ export default async function PerfilPage({
     where: { slug },
     include: {
       members: {
-        where: { userId: session.user.id },
         include: { user: true },
       },
     },
   });
 
-  if (!bolao || bolao.members.length === 0) {
+  if (!bolao) {
     redirect(`/boloes/${slug}`);
   }
 
-  const member = bolao.members[0];
+  // Se está pedindo histórico de outro usuário, verifica se é admin
+  const viewingUserId = queryUserId || session.user.id;
+  const isViewingOther = viewingUserId !== session.user.id;
+
+  if (isViewingOther && session.user.role !== "ADMIN") {
+    redirect(`/boloes/${slug}/perfil`);
+  }
+
+  // Busca o membro que está sendo visualizado
+  const member = bolao.members.find((m) => m.userId === viewingUserId);
+
+  if (!member) {
+    redirect(`/boloes/${slug}`);
+  }
+
   const user = member.user;
 
   return (
-    <main className="min-h-screen p-6 md:p-8" style={{ backgroundColor: "var(--bg-base)", color: "var(--text-primary)" }}>
+    <main
+      className="min-h-screen p-6 md:p-8"
+      style={{ backgroundColor: "var(--bg-base)", color: "var(--text-primary)" }}
+    >
       <div className="max-w-4xl mx-auto">
-        <Link href={`/boloes/${slug}`} className="text-sm mb-4 inline-block" style={{ color: "var(--text-secondary)" }}>
+        <Link
+          href={`/boloes/${slug}`}
+          className="text-sm mb-4 inline-block"
+          style={{ color: "var(--text-secondary)" }}
+        >
           ← Voltar
         </Link>
 
@@ -48,22 +71,31 @@ export default async function PerfilPage({
         >
           <div className="flex items-start gap-4">
             {user.image ? (
-              <img
-                src={user.image}
-                alt={user.name || "Usuário"}
-                className="w-16 h-16 rounded-full"
-              />
+              <img src={user.image} alt={user.name || "Usuário"} className="w-12 h-12 rounded-full" />
             ) : (
               <div
-                className="w-16 h-16 rounded-full flex items-center justify-center"
+                className="w-12 h-12 rounded-full flex items-center justify-center"
                 style={{ backgroundColor: "var(--bg-raised)" }}
               >
-                <User size={24} style={{ color: "var(--text-secondary)" }} />
+                <User size={20} style={{ color: "var(--text-secondary)" }} />
               </div>
             )}
 
             <div className="flex-1">
-              <h1 className="text-2xl font-bold">{user.name || "Usuário"}</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-bold">{user.name || "Usuário"}</h1>
+                {isViewingOther && (
+                  <span
+                    className="text-xs px-2 py-1 rounded"
+                    style={{
+                      backgroundColor: "var(--bg-raised)",
+                      color: "var(--text-secondary)",
+                    }}
+                  >
+                    Visualizando
+                  </span>
+                )}
+              </div>
               <p style={{ color: "var(--text-secondary)" }} className="text-sm mt-1">
                 {user.email}
               </p>
@@ -84,8 +116,10 @@ export default async function PerfilPage({
 
         {/* Histórico de Pontos */}
         <div>
-          <h2 className="text-xl font-bold mb-4">Histórico de Pontos</h2>
-          <HistoricoPontos bolaoSlug={slug} />
+          <h2 className="text-xl font-bold mb-4">
+            {isViewingOther ? `Histórico de Pontos - ${user.name}` : "Histórico de Pontos"}
+          </h2>
+          <HistoricoPontos bolaoSlug={slug} userId={viewingUserId} />
         </div>
       </div>
     </main>

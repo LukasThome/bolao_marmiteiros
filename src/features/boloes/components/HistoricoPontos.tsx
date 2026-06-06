@@ -14,7 +14,13 @@ type RegistroAuditoria = {
   user?: { name: string };
 };
 
-export default function HistoricoPontos({ bolaoSlug }: { bolaoSlug: string }) {
+export default function HistoricoPontos({
+  bolaoSlug,
+  userId,
+}: {
+  bolaoSlug: string;
+  userId?: string;
+}) {
   const [registros, setRegistros] = useState<RegistroAuditoria[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -25,9 +31,16 @@ export default function HistoricoPontos({ bolaoSlug }: { bolaoSlug: string }) {
     const carregarHistorico = async () => {
       try {
         setLoading(true);
-        const res = await fetch(
-          `/api/auditoria?bolao=${bolaoSlug}&tipo=HISTORICO&limit=${limit}&offset=${page * limit}`
-        );
+        const url = new URL("/api/auditoria", window.location.origin);
+        url.searchParams.set("bolao", bolaoSlug);
+        url.searchParams.set("tipo", "HISTORICO");
+        url.searchParams.set("limit", limit.toString());
+        url.searchParams.set("offset", (page * limit).toString());
+        if (userId) {
+          url.searchParams.set("userId", userId);
+        }
+
+        const res = await fetch(url.toString());
 
         if (!res.ok) {
           throw new Error("Erro ao carregar histórico");

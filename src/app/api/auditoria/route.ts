@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
   const tipo = searchParams.get("tipo"); // VERIFICACAO ou HISTORICO
   const limit = Math.min(parseInt(searchParams.get("limit") || "20"), 100);
   const offset = parseInt(searchParams.get("offset") || "0");
+  const queryUserId = searchParams.get("userId");
 
   if (!bolaoSlug) {
     return NextResponse.json({ error: "Parâmetro 'bolao' obrigatório" }, { status: 400 });
@@ -36,14 +37,22 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
   }
 
+  // Determina qual userId visualizar
+  const viewingUserId = queryUserId || session.user.id;
+
+  // Se está visualizando outro usuário, apenas admin pode
+  if (viewingUserId !== session.user.id && session.user.role !== "ADMIN") {
+    return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+  }
+
   if (tipo === "VERIFICACAO") {
     const verificacao = await verificarSaldoBolao(bolao.id);
     return NextResponse.json(verificacao);
   }
 
-  // Histórico do usuário logado (com paginação)
+  // Histórico do usuário especificado (com paginação)
   const { registros, total } = await obterHistoricoPontos(
-    session.user.id,
+    viewingUserId,
     bolao.id,
     limit,
     offset
