@@ -406,14 +406,14 @@ export default function PalpiteForm({
 
                         {/* Botão de ação na parte inferior (só aberto) */}
                         {isOpen && (
-                          <div className="flex items-center gap-2 mt-3">
+                          <div className="flex items-center justify-center gap-2 mt-3">
                             {state === "error" && (
                               <span className="text-xs" style={{ color: "var(--danger)" }}>!</span>
                             )}
                             <button
                               onClick={() => savePalpite(p.id)}
                               disabled={state === "saving"}
-                              className="flex-1 flex items-center gap-1 text-xs px-2.5 py-2 rounded-lg font-medium transition-all justify-center"
+                              className="w-1/2 flex items-center gap-1 text-xs px-2.5 py-2 rounded-lg font-medium transition-all justify-center"
                               style={{
                                 backgroundColor:
                                   state === "saved"
