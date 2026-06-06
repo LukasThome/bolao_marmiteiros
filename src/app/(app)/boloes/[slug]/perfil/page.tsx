@@ -33,13 +33,9 @@ export default async function PerfilPage({
     redirect(`/boloes/${slug}`);
   }
 
-  // Se está pedindo histórico de outro usuário, verifica se é admin
+  // Se está pedindo histórico de outro usuário
   const viewingUserId = queryUserId || session.user.id;
   const isViewingOther = viewingUserId !== session.user.id;
-
-  if (isViewingOther && session.user.role !== "ADMIN") {
-    redirect(`/boloes/${slug}/perfil`);
-  }
 
   // Busca o membro que está sendo visualizado
   const member = bolao.members.find((m) => m.userId === viewingUserId);
