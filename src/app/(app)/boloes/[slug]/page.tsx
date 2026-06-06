@@ -97,7 +97,7 @@ export default async function BolaoPage({
               return (
                 <Link
                   key={member.id}
-                  href={isMe ? `.` : `?userId=${member.userId}`}
+                  href={isMe ? `./perfil` : `./perfil?userId=${member.userId}`}
                   className="flex items-center gap-3 px-4 py-3 transition-colors"
                   style={isMe ? { backgroundColor: "var(--accent-subtle)", cursor: "default" } : { cursor: "pointer" }}
                 >
