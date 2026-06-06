@@ -333,6 +333,7 @@ export default function PalpiteForm({
                           {isOpen ? (
                             <input
                               type="number"
+                              inputMode="numeric"
                               min="0"
                               step="1"
                               value={score.home}
@@ -369,6 +370,7 @@ export default function PalpiteForm({
                           {isOpen ? (
                             <input
                               type="number"
+                              inputMode="numeric"
                               min="0"
                               step="1"
                               value={score.away}
