@@ -24,7 +24,10 @@ function makePalpite(id: string, userId: string, home: number, away: number) {
     userId,
     homeScore: home,
     awayScore: away,
-    partida: { rodada: { bolao: { id: BOLAO_ID } } },
+    partida: {
+      id: `partida-${id}`,
+      rodada: { bolao: { id: BOLAO_ID } }
+    },
   };
 }
 
