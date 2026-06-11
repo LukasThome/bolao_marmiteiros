@@ -5,12 +5,15 @@ const mockRodadaFindMany = vi.fn();
 const mockPartidaUpdate = vi.fn();
 const mockPalpiteFindMany = vi.fn();
 const mockPontuarPalpites = vi.fn();
+const mockSyncStateFindUnique = vi.fn();
+const mockSyncStateUpsert = vi.fn();
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     rodada: { findUnique: mockRodadaFindUnique, findMany: mockRodadaFindMany },
     partida: { update: mockPartidaUpdate },
     palpite: { findMany: mockPalpiteFindMany },
+    syncState: { findUnique: mockSyncStateFindUnique, upsert: mockSyncStateUpsert },
   },
 }));
 
@@ -18,9 +21,13 @@ vi.mock("@/features/boloes/lib/pontuacao", () => ({
   pontuarPalpites: mockPontuarPalpites,
 }));
 
-const { sincronizarRodada, sincronizarTodasRodadas, fetchFinishedMatches } = await import(
-  "@/features/boloes/lib/syncResultados"
-);
+const {
+  sincronizarRodada,
+  sincronizarTodasRodadas,
+  fetchFinishedMatches,
+  sincronizarComThrottle,
+  AUTO_SYNC_THROTTLE_MS,
+} = await import("@/features/boloes/lib/syncResultados");
 
 function mockFetchOnce(matches: unknown[]) {
   vi.stubGlobal(
@@ -218,6 +225,47 @@ describe("syncResultados", () => {
       mockRodadaFindMany.mockResolvedValue([]);
       const result = await sincronizarTodasRodadas(new Date());
       expect(result).toEqual({ rodadas: [], totalSynced: 0 });
+    });
+  });
+
+  describe("sincronizarComThrottle", () => {
+    it("pula a sincronização quando dentro do intervalo de throttle", async () => {
+      const now = new Date("2026-06-11T20:00:00Z");
+      // última sync há 30s (menor que o throttle)
+      mockSyncStateFindUnique.mockResolvedValue({
+        lastSyncAt: new Date(now.getTime() - 30 * 1000),
+      });
+
+      const result = await sincronizarComThrottle(now);
+
+      expect(result.skipped).toBe(true);
+      expect(result.totalSynced).toBe(0);
+      expect(mockSyncStateUpsert).not.toHaveBeenCalled();
+      expect(mockRodadaFindMany).not.toHaveBeenCalled();
+    });
+
+    it("sincroniza quando o intervalo de throttle já passou", async () => {
+      const now = new Date("2026-06-11T20:00:00Z");
+      mockSyncStateFindUnique.mockResolvedValue({
+        lastSyncAt: new Date(now.getTime() - AUTO_SYNC_THROTTLE_MS - 1000),
+      });
+      mockRodadaFindMany.mockResolvedValue([]);
+
+      const result = await sincronizarComThrottle(now);
+
+      expect(result.skipped).toBe(false);
+      expect(mockSyncStateUpsert).toHaveBeenCalledOnce();
+      expect(mockRodadaFindMany).toHaveBeenCalledOnce();
+    });
+
+    it("sincroniza na primeira vez (sem estado prévio)", async () => {
+      mockSyncStateFindUnique.mockResolvedValue(null);
+      mockRodadaFindMany.mockResolvedValue([]);
+
+      const result = await sincronizarComThrottle(new Date());
+
+      expect(result.skipped).toBe(false);
+      expect(mockSyncStateUpsert).toHaveBeenCalledOnce();
     });
   });
 });

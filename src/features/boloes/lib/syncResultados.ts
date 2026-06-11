@@ -177,6 +177,39 @@ export type SyncTodasResult = {
  * Sincroniza todas as rodadas que já começaram (deadline no passado) e
  * ainda têm partidas pendentes. Usado pelo cron automático.
  */
+// Intervalo mínimo entre sincronizações sob demanda (protege o rate limit da API)
+export const AUTO_SYNC_THROTTLE_MS = 2 * 60 * 1000; // 2 minutos
+const SYNC_STATE_KEY = "resultados";
+
+export type SyncComThrottleResult = SyncTodasResult & { skipped: boolean };
+
+/**
+ * Sincroniza com throttle: só chama a API se passou tempo suficiente desde a
+ * última sincronização. Usado pelo auto-sync disparado ao abrir a tela de
+ * pontuação, evitando estourar o rate limit da API com vários acessos.
+ *
+ * O timestamp é gravado ANTES de sincronizar para minimizar a janela em que
+ * acessos concorrentes disparem a API ao mesmo tempo.
+ */
+export async function sincronizarComThrottle(
+  now: Date = new Date()
+): Promise<SyncComThrottleResult> {
+  const state = await prisma.syncState.findUnique({ where: { key: SYNC_STATE_KEY } });
+
+  if (state && now.getTime() - state.lastSyncAt.getTime() < AUTO_SYNC_THROTTLE_MS) {
+    return { skipped: true, rodadas: [], totalSynced: 0 };
+  }
+
+  await prisma.syncState.upsert({
+    where: { key: SYNC_STATE_KEY },
+    create: { key: SYNC_STATE_KEY, lastSyncAt: now },
+    update: { lastSyncAt: now },
+  });
+
+  const result = await sincronizarTodasRodadas(now);
+  return { ...result, skipped: false };
+}
+
 export async function sincronizarTodasRodadas(now: Date = new Date()): Promise<SyncTodasResult> {
   const rodadas = await prisma.rodada.findMany({
     where: {
