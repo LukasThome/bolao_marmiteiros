@@ -163,11 +163,3 @@ model AuditoriaPontos {
   bolao     Bolao    @relation(fields: [bolaoId], references: [id])
   createdAt DateTime @default(now())
 }
-
-// Estado global de sincronização (throttle do auto-sync de resultados)
-model SyncState {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  key        String   @unique
-  lastSyncAt DateTime
-  updatedAt  DateTime @updatedAt
-}
