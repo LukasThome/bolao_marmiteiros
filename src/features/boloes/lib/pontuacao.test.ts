@@ -11,6 +11,7 @@ vi.mock("@/lib/prisma", () => ({
     palpite: { update: mockPalpiteUpdate },
     bolaoMember: { updateMany: mockMemberUpdateMany, findUnique: mockMemberFindUnique },
     auditoriaPontos: { create: mockAuditoriaCreate },
+    $transaction: (ops: unknown[]) => Promise.all(ops),
   },
 }));
 
@@ -18,12 +19,19 @@ const { pontuarPalpites } = await import("@/features/boloes/lib/pontuacao");
 
 const BOLAO_ID = "bolao-1";
 
-function makePalpite(id: string, userId: string, home: number, away: number) {
+function makePalpite(
+  id: string,
+  userId: string,
+  home: number,
+  away: number,
+  pontos: number | null = null
+) {
   return {
     id,
     userId,
     homeScore: home,
     awayScore: away,
+    pontos,
     partida: {
       id: `partida-${id}`,
       rodada: { bolao: { id: BOLAO_ID } }
@@ -43,19 +51,19 @@ describe("pontuarPalpites", () => {
   });
 
   describe("Cálculo de pontos", () => {
-    it("atribui 3 pontos para placar exato", async () => {
+    it("atribui 10 pontos para placar exato", async () => {
       await pontuarPalpites([makePalpite("p1", "u1", 2, 1)], { homeScore: 2, awayScore: 1 });
       expect(mockPalpiteUpdate).toHaveBeenCalledWith({
         where: { id: "p1" },
-        data: { pontos: 3 },
+        data: { pontos: 10 },
       });
     });
 
-    it("atribui 1 ponto para resultado correto sem placar exato", async () => {
+    it("atribui 5 pontos para resultado correto sem placar exato", async () => {
       await pontuarPalpites([makePalpite("p1", "u1", 3, 0)], { homeScore: 2, awayScore: 1 });
       expect(mockPalpiteUpdate).toHaveBeenCalledWith({
         where: { id: "p1" },
-        data: { pontos: 1 },
+        data: { pontos: 5 },
       });
     });
 
@@ -73,7 +81,7 @@ describe("pontuarPalpites", () => {
       await pontuarPalpites([makePalpite("p1", "u1", 2, 0)], { homeScore: 3, awayScore: 1 });
       expect(mockPalpiteUpdate).toHaveBeenCalledWith({
         where: { id: "p1" },
-        data: { pontos: 1 },
+        data: { pontos: 5 },
       });
     });
 
@@ -81,7 +89,7 @@ describe("pontuarPalpites", () => {
       await pontuarPalpites([makePalpite("p1", "u1", 0, 2)], { homeScore: 1, awayScore: 3 });
       expect(mockPalpiteUpdate).toHaveBeenCalledWith({
         where: { id: "p1" },
-        data: { pontos: 1 },
+        data: { pontos: 5 },
       });
     });
 
@@ -89,7 +97,7 @@ describe("pontuarPalpites", () => {
       await pontuarPalpites([makePalpite("p1", "u1", 1, 1)], { homeScore: 2, awayScore: 2 });
       expect(mockPalpiteUpdate).toHaveBeenCalledWith({
         where: { id: "p1" },
-        data: { pontos: 1 },
+        data: { pontos: 5 },
       });
     });
 
@@ -121,9 +129,9 @@ describe("pontuarPalpites", () => {
     });
 
     it("acumula pontos de múltiplos palpites do mesmo usuário", async () => {
-      // Primeiro palpite: 3 pts
+      // Primeiro palpite: 10 pts
       await pontuarPalpites([makePalpite("p1", "u1", 2, 1)], { homeScore: 2, awayScore: 1 });
-      // Segundo palpite: 3 pts
+      // Segundo palpite: 10 pts
       await pontuarPalpites([makePalpite("p2", "u1", 1, 0)], { homeScore: 1, awayScore: 0 });
 
       // Verificar que foram feitas 2 chamadas de incremento para o mesmo usuário
@@ -131,8 +139,8 @@ describe("pontuarPalpites", () => {
         (call) => call[0].where.userId === "u1"
       );
       expect(chamadasUser1).toHaveLength(2);
-      expect(chamadasUser1[0][0].data.totalPts.increment).toBe(3);
-      expect(chamadasUser1[1][0].data.totalPts.increment).toBe(3);
+      expect(chamadasUser1[0][0].data.totalPts.increment).toBe(10);
+      expect(chamadasUser1[1][0].data.totalPts.increment).toBe(10);
     });
 
     it("não chama prisma quando lista está vazia", async () => {
@@ -145,16 +153,16 @@ describe("pontuarPalpites", () => {
   describe("Cálculo de pontos direto", () => {
     it("calcula pontos corretamente em diferentes cenários", () => {
       expect(calcularPontos({ homeScore: 2, awayScore: 1 }, { homeScore: 2, awayScore: 1 })).toBe(
-        3
+        10
       );
       expect(calcularPontos({ homeScore: 3, awayScore: 0 }, { homeScore: 2, awayScore: 1 })).toBe(
-        1
+        5
       );
       expect(calcularPontos({ homeScore: 0, awayScore: 2 }, { homeScore: 1, awayScore: 3 })).toBe(
-        1
+        5
       );
       expect(calcularPontos({ homeScore: 1, awayScore: 1 }, { homeScore: 2, awayScore: 2 })).toBe(
-        1
+        5
       );
       expect(calcularPontos({ homeScore: 1, awayScore: 1 }, { homeScore: 2, awayScore: 1 })).toBe(
         0
