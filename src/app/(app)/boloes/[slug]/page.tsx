@@ -46,7 +46,16 @@ export default async function BolaoPage({
   const members = bolao.members.map((m) => ({ ...m, user: userMap[m.userId] ?? null }));
 
   const now = new Date();
-  const hasPoints = members.some((m) => m.totalPts > 0);
+
+  // Medalha por faixa de pontuação: maior pontuação = ouro, 2ª = prata, 3ª = bronze.
+  // Todos os jogadores com a mesma pontuação (faixa) recebem a mesma medalha.
+  const faixas = [...new Set(members.map((m) => m.totalPts).filter((p) => p > 0))].sort(
+    (a, b) => b - a
+  );
+  const medalhaPorPontos = (pts: number): string | null => {
+    if (pts <= 0) return null;
+    return ["🥇", "🥈", "🥉"][faixas.indexOf(pts)] ?? null;
+  };
   // Usa os dados do banco (userMap) para refletir a foto atualizada,
   // já que a imagem na sessão (JWT) pode estar desatualizada.
   const currentUser = session?.user
@@ -116,7 +125,7 @@ export default async function BolaoPage({
           <div className="divide-y" style={{ borderColor: "var(--border)" }}>
             {members.map((member, i) => {
               const isMe = member.userId === session?.user?.id;
-              const medals = ["🥇", "🥈", "🥉"];
+              const medalha = medalhaPorPontos(member.totalPts);
               return (
                 <Link
                   key={member.id}
@@ -125,7 +134,7 @@ export default async function BolaoPage({
                   style={isMe ? { backgroundColor: "var(--accent-subtle)", cursor: "default" } : { cursor: "pointer" }}
                 >
                   <span className="w-6 text-center text-sm">
-                    {hasPoints && i < 3 ? medals[i] : <span style={{ color: "var(--text-muted)" }}>{i + 1}</span>}
+                    {medalha ?? <span style={{ color: "var(--text-muted)" }}>{i + 1}</span>}
                   </span>
                   <div
                     className="shrink-0 rounded-full overflow-hidden"
@@ -154,7 +163,7 @@ export default async function BolaoPage({
                   </span>
                   <span
                     className="text-sm font-bold tabular-nums"
-                    style={{ color: hasPoints && i === 0 ? "var(--gold)" : "var(--text-primary)" }}
+                    style={{ color: medalha === "🥇" ? "var(--gold)" : "var(--text-primary)" }}
                   >
                     {member.totalPts} pts
                   </span>
