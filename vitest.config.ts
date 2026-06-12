@@ -23,9 +23,8 @@ export default defineConfig({
         "src/lib/auth.ts",
         "src/auth.config.ts",
         "src/proxy.ts",
-        // Componentes UI sem lógica de negócio (timer, banner, provider)
+        // Componentes UI sem lógica de negócio (timer, provider)
         "src/features/boloes/components/Countdown.tsx",
-        "src/components/BetaBanner.tsx",
         "src/components/ToastProvider.tsx",
         // Componentes UI client (fetch + render): histórico e edição de foto
         "src/features/boloes/components/HistoricoPontos.tsx",
