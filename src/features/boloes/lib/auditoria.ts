@@ -1,36 +1,51 @@
 import { prisma } from "@/lib/prisma";
 
-export async function registrarAuditoria(
-  userId: string,
-  bolaoId: string,
-  tipo: "PALPITE_ACERTADO" | "AJUSTE_MANUAL" | "REVERSAO",
-  pontos: number,
-  descricao?: string,
-  palpiteId?: string,
-  partidaId?: string
-) {
-  // Busca o saldo atual do membro antes da transação
-  const memberAntes = await prisma.bolaoMember.findUnique({
-    where: { userId_bolaoId: { userId, bolaoId } },
-  });
+type RegistrarAuditoriaParams = {
+  userId: string;
+  bolaoId: string;
+  tipo: "PALPITE_ACERTADO" | "AJUSTE_MANUAL" | "REVERSAO";
+  /** Movimento aplicado ao saldo (delta). Ex: +10 ao acertar, -3 ao reverter. */
+  movimento: number;
+  /** Saldo do membro ANTES deste movimento (capturado antes de incrementar). */
+  saldoAntes: number;
+  descricao?: string;
+  palpiteId?: string;
+  partidaId?: string;
+};
 
-  const saldoAntes = memberAntes?.totalPts ?? 0;
-  const saldoDepois = saldoAntes + pontos;
+/**
+ * Registra (ou atualiza) o lançamento de auditoria de um movimento de pontos.
+ *
+ * - `pontos` guarda o **movimento** (delta), e `saldoDepois = saldoAntes + movimento`,
+ *   formando um extrato fiel onde a soma dos movimentos = total do membro.
+ * - Quando há `palpiteId`, faz **upsert**: re-pontuar o mesmo palpite atualiza o
+ *   lançamento existente em vez de criar um duplicado.
+ */
+export async function registrarAuditoria(params: RegistrarAuditoriaParams) {
+  const { userId, bolaoId, tipo, movimento, saldoAntes, descricao, palpiteId, partidaId } = params;
+  const saldoDepois = saldoAntes + movimento;
 
-  // Registra a auditoria
-  return prisma.auditoriaPontos.create({
-    data: {
-      userId,
-      bolaoId,
-      tipo,
-      pontos,
-      saldoAntes,
-      saldoDepois,
-      descricao,
-      palpiteId,
-      partidaId,
-    },
-  });
+  const data = {
+    userId,
+    bolaoId,
+    tipo,
+    pontos: movimento,
+    saldoAntes,
+    saldoDepois,
+    descricao,
+    palpiteId,
+    partidaId,
+  };
+
+  // Dedup por palpite: atualiza o lançamento existente se já houver
+  if (palpiteId) {
+    const existente = await prisma.auditoriaPontos.findFirst({ where: { palpiteId } });
+    if (existente) {
+      return prisma.auditoriaPontos.update({ where: { id: existente.id }, data });
+    }
+  }
+
+  return prisma.auditoriaPontos.create({ data });
 }
 
 export async function obterHistoricoPontos(
