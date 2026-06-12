@@ -28,6 +28,12 @@ export async function pontuarPalpites(
     const delta = pontos - (palpite.pontos ?? 0);
     if (palpite.pontos !== null && delta === 0) continue;
 
+    // Captura o saldo ANTES de incrementar, para o lançamento de auditoria
+    const member = await prisma.bolaoMember.findUnique({
+      where: { userId_bolaoId: { userId: palpite.userId, bolaoId } },
+    });
+    const saldoAntes = member?.totalPts ?? 0;
+
     await prisma.$transaction([
       prisma.palpite.update({ where: { id: palpite.id }, data: { pontos } }),
       prisma.bolaoMember.updateMany({
@@ -36,15 +42,16 @@ export async function pontuarPalpites(
       }),
     ]);
 
-    // Registra a auditoria
-    await registrarAuditoria(
-      palpite.userId,
+    // Registra a auditoria (movimento = delta aplicado ao saldo)
+    await registrarAuditoria({
+      userId: palpite.userId,
       bolaoId,
-      "PALPITE_ACERTADO",
-      pontos,
-      `${pontos === 10 ? "Acerto exato" : pontos === 5 ? "Acerto de resultado" : "Sem pontos"}`,
-      palpite.id,
-      palpite.partida.id
-    );
+      tipo: "PALPITE_ACERTADO",
+      movimento: delta,
+      saldoAntes,
+      descricao: pontos === 10 ? "Acerto exato" : pontos === 5 ? "Acerto de resultado" : "Sem pontos",
+      palpiteId: palpite.id,
+      partidaId: palpite.partida.id,
+    });
   }
 }

@@ -5,12 +5,13 @@ const mockPalpiteUpdate = vi.fn();
 const mockMemberUpdateMany = vi.fn();
 const mockMemberFindUnique = vi.fn();
 const mockAuditoriaCreate = vi.fn();
+const mockAuditoriaFindFirst = vi.fn();
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     palpite: { update: mockPalpiteUpdate },
     bolaoMember: { updateMany: mockMemberUpdateMany, findUnique: mockMemberFindUnique },
-    auditoriaPontos: { create: mockAuditoriaCreate },
+    auditoriaPontos: { create: mockAuditoriaCreate, findFirst: mockAuditoriaFindFirst },
     $transaction: (ops: unknown[]) => Promise.all(ops),
   },
 }));
@@ -45,9 +46,11 @@ describe("pontuarPalpites", () => {
     mockMemberUpdateMany.mockReset();
     mockMemberFindUnique.mockReset();
     mockAuditoriaCreate.mockReset();
+    mockAuditoriaFindFirst.mockReset();
     // Configurar retorno padrão para o mock de findUnique
     mockMemberFindUnique.mockResolvedValue({ totalPts: 0 });
     mockAuditoriaCreate.mockResolvedValue({ id: "audit-1" });
+    mockAuditoriaFindFirst.mockResolvedValue(null);
   });
 
   describe("Cálculo de pontos", () => {
