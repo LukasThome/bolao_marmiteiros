@@ -12,6 +12,7 @@ type RegistroAuditoria = {
   descricao: string | null;
   createdAt: string;
   user?: { name: string };
+  partida?: { homeTeam: string; awayTeam: string } | null;
 };
 
 export default function HistoricoPontos({
@@ -101,10 +102,10 @@ export default function HistoricoPontos({
           }}
         >
           <div className="col-span-2">Data</div>
-          <div className="col-span-3">Descrição</div>
+          <div className="col-span-4">Jogo</div>
           <div className="col-span-2 text-right">Tipo</div>
           <div className="col-span-2 text-right">Pontos</div>
-          <div className="col-span-3 text-right">Saldo</div>
+          <div className="col-span-2 text-right">Saldo</div>
         </div>
 
         {/* Registros */}
@@ -135,7 +136,18 @@ export default function HistoricoPontos({
             >
               <div className="col-span-2 text-xs">{data}</div>
 
-              <div className="col-span-3 text-sm truncate">{descricaoFormatada}</div>
+              <div className="col-span-4 min-w-0">
+                {registro.partida ? (
+                  <span className="text-sm font-medium truncate block" title={`${registro.partida.homeTeam} × ${registro.partida.awayTeam}`}>
+                    {registro.partida.homeTeam} × {registro.partida.awayTeam}
+                  </span>
+                ) : (
+                  <span className="text-sm truncate block">{descricaoFormatada}</span>
+                )}
+                <span className="text-xs truncate block" style={{ color: "var(--text-muted)" }}>
+                  {descricaoFormatada}
+                </span>
+              </div>
 
               <div className="col-span-2 text-right text-xs">
                 <span
@@ -177,7 +189,7 @@ export default function HistoricoPontos({
                 </div>
               </div>
 
-              <div className="col-span-3 text-right text-sm font-mono">
+              <div className="col-span-2 text-right text-sm font-mono">
                 <div style={{ color: "var(--text-primary)" }}>{registro.saldoDepois} pts</div>
                 <div style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>
                   (de {registro.saldoAntes})
