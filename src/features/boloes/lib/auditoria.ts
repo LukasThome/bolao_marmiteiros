@@ -54,7 +54,7 @@ export async function obterHistoricoPontos(
   limit: number = 50,
   offset: number = 0
 ) {
-  const registros = await prisma.auditoriaPontos.findMany({
+  const registrosRaw = await prisma.auditoriaPontos.findMany({
     where: { userId, bolaoId },
     orderBy: { createdAt: "desc" },
     take: limit,
@@ -64,6 +64,21 @@ export async function obterHistoricoPontos(
   const total = await prisma.auditoriaPontos.count({
     where: { userId, bolaoId },
   });
+
+  // Anexa os dados da partida de origem (partidaId não tem relation no schema)
+  const partidaIds = [...new Set(registrosRaw.map((r) => r.partidaId).filter((id): id is string => !!id))];
+  const partidas = partidaIds.length
+    ? await prisma.partida.findMany({
+        where: { id: { in: partidaIds } },
+        select: { id: true, homeTeam: true, awayTeam: true },
+      })
+    : [];
+  const partidaMap = Object.fromEntries(partidas.map((p) => [p.id, p]));
+
+  const registros = registrosRaw.map((r) => ({
+    ...r,
+    partida: r.partidaId ? partidaMap[r.partidaId] ?? null : null,
+  }));
 
   return { registros, total };
 }

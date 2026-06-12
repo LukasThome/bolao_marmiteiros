@@ -7,6 +7,7 @@ const mockAuditoriafindMany = vi.fn();
 const mockAuditoriaCount = vi.fn();
 const mockBolaoMemberFindUnique = vi.fn();
 const mockBolaoMemberFindMany = vi.fn();
+const mockPartidaFindMany = vi.fn();
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -21,6 +22,7 @@ vi.mock("@/lib/prisma", () => ({
       findUnique: mockBolaoMemberFindUnique,
       findMany: mockBolaoMemberFindMany,
     },
+    partida: { findMany: mockPartidaFindMany },
   },
 }));
 
@@ -128,21 +130,28 @@ describe("Auditoria de Pontos", () => {
   });
 
   describe("obterHistoricoPontos", () => {
-    it("retorna histórico de pontos com paginação", async () => {
+    it("retorna histórico de pontos com paginação e anexa a partida de origem", async () => {
       const registros = [
-        { id: "1", pontos: 3, createdAt: new Date() },
-        { id: "2", pontos: 1, createdAt: new Date() },
+        { id: "1", pontos: 10, partidaId: "pt1", createdAt: new Date() },
+        { id: "2", pontos: 5, partidaId: null, createdAt: new Date() },
       ];
 
       mockAuditoriafindMany.mockResolvedValue(registros);
       mockAuditoriaCount.mockResolvedValue(10);
+      mockPartidaFindMany.mockResolvedValue([
+        { id: "pt1", homeTeam: "Mexico", awayTeam: "South Africa" },
+      ]);
 
       const resultado = await obterHistoricoPontos("user-1", "bolao-1", 2, 0);
 
-      expect(resultado).toEqual({
-        registros,
-        total: 10,
+      expect(resultado.total).toBe(10);
+      // 1º registro recebe a partida; 2º (sem partidaId) fica com null
+      expect(resultado.registros[0].partida).toEqual({
+        id: "pt1",
+        homeTeam: "Mexico",
+        awayTeam: "South Africa",
       });
+      expect(resultado.registros[1].partida).toBeNull();
 
       expect(mockAuditoriafindMany).toHaveBeenCalledWith({
         where: { userId: "user-1", bolaoId: "bolao-1" },
