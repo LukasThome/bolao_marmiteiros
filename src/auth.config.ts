@@ -10,7 +10,8 @@ export const authConfig: NextAuthConfig = {
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
-      const publicPaths = ["/login", "/register", "/api/auth", "/api/register", "/join"];
+      // /api/cron é protegido por CRON_SECRET (não por sessão), então é público para o middleware
+      const publicPaths = ["/login", "/register", "/api/auth", "/api/register", "/join", "/api/cron"];
       const isPublic = publicPaths.some((p) => nextUrl.pathname.startsWith(p));
       if (isPublic) return true;
       if (!isLoggedIn) {

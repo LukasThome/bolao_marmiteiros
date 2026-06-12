@@ -7,6 +7,7 @@ type PalpiteComBolao = {
   userId: string;
   homeScore: number;
   awayScore: number;
+  pontos: number | null;
   partida: { id: string; rodada: { bolao: { id: string } } };
 };
 
@@ -21,11 +22,19 @@ export async function pontuarPalpites(
     );
     const bolaoId = palpite.partida.rodada.bolao.id;
 
-    await prisma.palpite.update({ where: { id: palpite.id }, data: { pontos } });
-    await prisma.bolaoMember.updateMany({
-      where: { userId: palpite.userId, bolaoId },
-      data: { totalPts: { increment: pontos } },
-    });
+    // Idempotente: soma apenas a diferença em relação ao que já estava
+    // pontuado, para que re-sync / duplo clique não inflem o total.
+    // Pula apenas quando o palpite já foi pontuado com o mesmo valor.
+    const delta = pontos - (palpite.pontos ?? 0);
+    if (palpite.pontos !== null && delta === 0) continue;
+
+    await prisma.$transaction([
+      prisma.palpite.update({ where: { id: palpite.id }, data: { pontos } }),
+      prisma.bolaoMember.updateMany({
+        where: { userId: palpite.userId, bolaoId },
+        data: { totalPts: { increment: delta } },
+      }),
+    ]);
 
     // Registra a auditoria
     await registrarAuditoria(
@@ -33,7 +42,7 @@ export async function pontuarPalpites(
       bolaoId,
       "PALPITE_ACERTADO",
       pontos,
-      `${pontos === 3 ? "Acerto exato" : pontos === 1 ? "Acerto de resultado" : "Sem pontos"}`,
+      `${pontos === 10 ? "Acerto exato" : pontos === 5 ? "Acerto de resultado" : "Sem pontos"}`,
       palpite.id,
       palpite.partida.id
     );

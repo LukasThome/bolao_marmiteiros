@@ -5,6 +5,7 @@ import { randomUUID } from "crypto";
 import Link from "next/link";
 import { ChevronRight, Clock, Trophy, User, ListChecks } from "lucide-react";
 import InviteLink from "@/features/boloes/components/InviteLink";
+import AtualizarResultados from "@/features/admin/components/AtualizarResultados";
 
 export default async function BolaoPage({
   params,
@@ -175,6 +176,9 @@ export default async function BolaoPage({
           </div>
           <ChevronRight size={16} style={{ color: "var(--text-muted)" }} />
         </Link>
+
+        {/* Botão de atualizar resultados (admin) */}
+        {isAdmin && <AtualizarResultados />}
 
         {/* Rodadas */}
         {bolao.rodadas.length === 0 ? (
