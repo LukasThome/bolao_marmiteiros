@@ -44,6 +44,7 @@ export default async function RodadaPalpitePage({
   const lockTime = getLockTime({ deadline: rodada.deadline, partidas: rodada.partidas });
   const isOpen = new Date() < lockTime;
   const deadlineLabel = lockTime.toLocaleString("pt-BR", {
+    timeZone: "America/Sao_Paulo",
     dateStyle: "short",
     timeStyle: "short",
   });

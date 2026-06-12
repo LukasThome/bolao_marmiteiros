@@ -189,7 +189,8 @@ export default async function BolaoPage({
           <div className="flex flex-col gap-3">
             {bolao.rodadas.map((rodada) => {
               const isOpen = now < new Date(rodada.deadline);
-              const deadline = new Date(rodada.deadline).toLocaleDateString("pt-BR", {
+              const deadline = new Date(rodada.deadline).toLocaleString("pt-BR", {
+                timeZone: "America/Sao_Paulo",
                 day: "2-digit",
                 month: "short",
                 hour: "2-digit",

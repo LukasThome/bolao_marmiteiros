@@ -69,7 +69,7 @@ export default async function DashboardPage() {
             {boloes.map((bolao) => {
               const rodada = bolao.rodadas[0];
               const deadline = rodada
-                ? new Date(rodada.deadline).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })
+                ? new Date(rodada.deadline).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "short" })
                 : null;
 
               return (
