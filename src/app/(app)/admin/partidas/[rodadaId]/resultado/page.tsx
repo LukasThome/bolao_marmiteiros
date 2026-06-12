@@ -65,6 +65,7 @@ export default async function ResultadoPage({
   }
 
   const deadline = new Date(rodada.deadline).toLocaleString("pt-BR", {
+    timeZone: "America/Sao_Paulo",
     dateStyle: "short",
     timeStyle: "short",
   });

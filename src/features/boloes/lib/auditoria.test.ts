@@ -1,15 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockAuditoriaCreate = vi.fn();
+const mockAuditoriaUpdate = vi.fn();
+const mockAuditoriaFindFirst = vi.fn();
 const mockAuditoriafindMany = vi.fn();
 const mockAuditoriaCount = vi.fn();
 const mockBolaoMemberFindUnique = vi.fn();
 const mockBolaoMemberFindMany = vi.fn();
+const mockPartidaFindMany = vi.fn();
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     auditoriaPontos: {
       create: mockAuditoriaCreate,
+      update: mockAuditoriaUpdate,
+      findFirst: mockAuditoriaFindFirst,
       findMany: mockAuditoriafindMany,
       count: mockAuditoriaCount,
     },
@@ -17,6 +22,7 @@ vi.mock("@/lib/prisma", () => ({
       findUnique: mockBolaoMemberFindUnique,
       findMany: mockBolaoMemberFindMany,
     },
+    partida: { findMany: mockPartidaFindMany },
   },
 }));
 
@@ -29,28 +35,29 @@ describe("Auditoria de Pontos", () => {
   });
 
   describe("registrarAuditoria", () => {
-    it("registra uma transação de auditoria com saldo antes e depois", async () => {
-      mockBolaoMemberFindUnique.mockResolvedValue({ totalPts: 10 });
+    it("registra o movimento com saldoDepois = saldoAntes + movimento", async () => {
+      mockAuditoriaFindFirst.mockResolvedValue(null);
       mockAuditoriaCreate.mockResolvedValue({ id: "audit-1" });
 
-      await registrarAuditoria(
-        "user-1",
-        "bolao-1",
-        "PALPITE_ACERTADO",
-        3,
-        "Acerto exato",
-        "palpite-1",
-        "partida-1"
-      );
+      await registrarAuditoria({
+        userId: "user-1",
+        bolaoId: "bolao-1",
+        tipo: "PALPITE_ACERTADO",
+        movimento: 10,
+        saldoAntes: 0,
+        descricao: "Acerto exato",
+        palpiteId: "palpite-1",
+        partidaId: "partida-1",
+      });
 
       expect(mockAuditoriaCreate).toHaveBeenCalledWith({
         data: {
           userId: "user-1",
           bolaoId: "bolao-1",
           tipo: "PALPITE_ACERTADO",
-          pontos: 3,
-          saldoAntes: 10,
-          saldoDepois: 13,
+          pontos: 10,
+          saldoAntes: 0,
+          saldoDepois: 10,
           descricao: "Acerto exato",
           palpiteId: "palpite-1",
           partidaId: "partida-1",
@@ -58,87 +65,93 @@ describe("Auditoria de Pontos", () => {
       });
     });
 
-    it("calcula saldo corretamente quando membro não existe", async () => {
-      mockBolaoMemberFindUnique.mockResolvedValue(null);
-      mockAuditoriaCreate.mockResolvedValue({ id: "audit-1" });
+    it("acumula sobre o saldo anterior (extrato)", async () => {
+      mockAuditoriaFindFirst.mockResolvedValue(null);
+      mockAuditoriaCreate.mockResolvedValue({ id: "audit-2" });
 
-      await registrarAuditoria("user-novo", "bolao-1", "PALPITE_ACERTADO", 1);
+      await registrarAuditoria({
+        userId: "user-1",
+        bolaoId: "bolao-1",
+        tipo: "PALPITE_ACERTADO",
+        movimento: 5,
+        saldoAntes: 10,
+        palpiteId: "palpite-2",
+      });
 
       expect(mockAuditoriaCreate).toHaveBeenCalledWith({
-        data: {
-          userId: "user-novo",
-          bolaoId: "bolao-1",
-          tipo: "PALPITE_ACERTADO",
-          pontos: 1,
-          saldoAntes: 0,
-          saldoDepois: 1,
-          descricao: undefined,
-          palpiteId: undefined,
-          partidaId: undefined,
-        },
+        data: expect.objectContaining({ pontos: 5, saldoAntes: 10, saldoDepois: 15 }),
       });
     });
 
-    it("registra auditoria de ajuste manual", async () => {
-      mockBolaoMemberFindUnique.mockResolvedValue({ totalPts: 5 });
-      mockAuditoriaCreate.mockResolvedValue({ id: "audit-2" });
+    it("atualiza o lançamento existente do palpite em vez de duplicar (upsert)", async () => {
+      // Já existe um lançamento para este palpite → deve atualizar
+      mockAuditoriaFindFirst.mockResolvedValue({ id: "audit-existente" });
+      mockAuditoriaUpdate.mockResolvedValue({ id: "audit-existente" });
 
-      await registrarAuditoria(
-        "user-1",
-        "bolao-1",
-        "AJUSTE_MANUAL",
-        -2,
-        "Ajuste por erro de sistema"
-      );
+      await registrarAuditoria({
+        userId: "user-1",
+        bolaoId: "bolao-1",
+        tipo: "PALPITE_ACERTADO",
+        movimento: 7,
+        saldoAntes: 3,
+        palpiteId: "palpite-1",
+      });
 
+      expect(mockAuditoriaUpdate).toHaveBeenCalledWith({
+        where: { id: "audit-existente" },
+        data: expect.objectContaining({ pontos: 7, saldoAntes: 3, saldoDepois: 10 }),
+      });
+      expect(mockAuditoriaCreate).not.toHaveBeenCalled();
+    });
+
+    it("registra ajuste manual (movimento negativo) sem palpite", async () => {
+      mockAuditoriaCreate.mockResolvedValue({ id: "audit-3" });
+
+      await registrarAuditoria({
+        userId: "user-1",
+        bolaoId: "bolao-1",
+        tipo: "AJUSTE_MANUAL",
+        movimento: -2,
+        saldoAntes: 5,
+        descricao: "Ajuste por erro de sistema",
+      });
+
+      // Sem palpiteId não consulta duplicata
+      expect(mockAuditoriaFindFirst).not.toHaveBeenCalled();
       expect(mockAuditoriaCreate).toHaveBeenCalledWith({
         data: expect.objectContaining({
           tipo: "AJUSTE_MANUAL",
           pontos: -2,
           saldoAntes: 5,
           saldoDepois: 3,
-          descricao: "Ajuste por erro de sistema",
-        }),
-      });
-    });
-
-    it("registra auditoria de reversão", async () => {
-      mockBolaoMemberFindUnique.mockResolvedValue({ totalPts: 10 });
-      mockAuditoriaCreate.mockResolvedValue({ id: "audit-3" });
-
-      await registrarAuditoria(
-        "user-1",
-        "bolao-1",
-        "REVERSAO",
-        -3,
-        "Resultado alterado, removendo pontos"
-      );
-
-      expect(mockAuditoriaCreate).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          tipo: "REVERSAO",
-          pontos: -3,
         }),
       });
     });
   });
 
   describe("obterHistoricoPontos", () => {
-    it("retorna histórico de pontos com paginação", async () => {
+    it("retorna histórico de pontos com paginação e anexa a partida de origem", async () => {
       const registros = [
-        { id: "1", pontos: 3, createdAt: new Date() },
-        { id: "2", pontos: 1, createdAt: new Date() },
+        { id: "1", pontos: 10, partidaId: "pt1", createdAt: new Date() },
+        { id: "2", pontos: 5, partidaId: null, createdAt: new Date() },
       ];
 
       mockAuditoriafindMany.mockResolvedValue(registros);
       mockAuditoriaCount.mockResolvedValue(10);
+      mockPartidaFindMany.mockResolvedValue([
+        { id: "pt1", homeTeam: "Mexico", awayTeam: "South Africa" },
+      ]);
 
       const resultado = await obterHistoricoPontos("user-1", "bolao-1", 2, 0);
 
-      expect(resultado).toEqual({
-        registros,
-        total: 10,
+      expect(resultado.total).toBe(10);
+      // 1º registro recebe a partida; 2º (sem partidaId) fica com null
+      expect(resultado.registros[0].partida).toEqual({
+        id: "pt1",
+        homeTeam: "Mexico",
+        awayTeam: "South Africa",
       });
+      expect(resultado.registros[1].partida).toBeNull();
 
       expect(mockAuditoriafindMany).toHaveBeenCalledWith({
         where: { userId: "user-1", bolaoId: "bolao-1" },
